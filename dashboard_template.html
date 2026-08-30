@@ -68,6 +68,9 @@
   .sub { color: var(--ink2); font-size: 12px; margin-top: 2px; }
   .asof { color: var(--muted); font-size: 12px; text-align: right; }
   .asof strong { color: var(--ink2); font-weight: 600; }
+  .top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .maplink { font-size: 12px; color: var(--s1); text-decoration: none; }
+  .maplink:hover { text-decoration: underline; }
 
   /* ---------- filter row ---------- */
   .filters {
@@ -223,7 +226,10 @@
         <div class="sub" id="subline">Cobalt Outfitters &middot; 18 source systems flattened into one order-line table</div>
       </div>
     </div>
-    <div class="asof" id="asof"></div>
+    <div class="top-right">
+      <div class="asof" id="asof"></div>
+      __MAPPING_LINK__
+    </div>
   </header>
 
   <div class="filters" id="filters">

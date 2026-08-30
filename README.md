@@ -4,7 +4,10 @@
 [![codeql](https://github.com/bgard68/bi-simulator/actions/workflows/codeql.yml/badge.svg)](https://github.com/bgard68/bi-simulator/actions/workflows/codeql.yml)
 
 **Live demo: <https://bgard68.github.io/bi-simulator/>** — an interactive,
-Power BI-style dashboard rebuilt from scratch by CI on every push.
+Power BI-style dashboard rebuilt from scratch by CI on every push. The
+**[mapping evidence page](https://bgard68.github.io/bi-simulator/mapping.html)**
+shows the AI-in-the-loop stage's recorded run: the unknown file, the model's
+proposal, and the eleven-gate verdict.
 
 A self-contained simulation of a real BI pipeline for a fictional outdoor-gear
 retailer ("Cobalt Outfitters"): fabricate 18 source systems the way each would

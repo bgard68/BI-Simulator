@@ -31,10 +31,12 @@ jobs:
         run: |
           python generate_unknown_source.py
           python mapper/validate_mapping.py
+          python build_mapping_page.py
       - name: Assemble site
         run: |
           mkdir site
           cp output/dashboard.html site/index.html
+          cp output/mapping.html site/mapping.html
           cp warehouse/flat_sales.csv site/flat_sales.csv
           cp flatten_map.svg site/flatten_map.svg
           (cd sources && zip -r ../site/sources.zip .)

@@ -67,6 +67,17 @@ The injection canary never gets a chance to matter: it is just a value in an
 email column, so it fails the customer join like any other bad row and is
 absorbed by the coverage slack. Content cannot vote.
 
+## See it rendered
+
+The live site's **[mapping evidence page](https://bgard68.github.io/bi-simulator/mapping.html)**
+is generated from these exact artifacts (`build_mapping_page.py`) on every
+push: the raw unknown file, the canary row, the proposal's transform chains
+and value maps, and the gate-by-gate verdict — recomputed at build time so
+the page can never drift from the truth. For **live** runs from the browser,
+the `live-map` workflow gives the repo an Actions "Run workflow" button; it
+needs the one-time `CLAUDE_CODE_OAUTH_TOKEN` repo secret (mint locally with
+`claude setup-token`).
+
 ## Replay: free forever, checked on every push
 
 CI does not call a model. The `build-and-deploy` workflow **replays** the
