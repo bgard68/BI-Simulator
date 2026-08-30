@@ -71,6 +71,19 @@ placeholder token and writes two variants: `output/dashboard.html`
 publishing). It also escapes `</` inside the JSON so embedded strings can
 never terminate the `<script>` block.
 
+## Stage 4 — the agentic mapping stage (AI inside the pipeline)
+
+The three stages above were *built* by an AI agent; this stage puts a model
+*inside* the pipeline, governed. `generate_unknown_source.py` fabricates a
+19th source the ETL was never taught (pipe-delimited, `DD.MM.YYYY` dates,
+prefixed SKUs, alien enum codes, a prompt-injection canary);
+`mapper/propose_mapping.py` has an LLM propose the schema mapping as JSON
+drawn from a closed transform vocabulary; `mapper/validate_mapping.py`
+applies the proposal to the full file and holds it to eleven deterministic
+gates (structure, parse rates, join coverage, canonical enums) — pass all or
+nothing lands. CI never calls a model: it replays the recorded, accepted
+proposal on every push. Full write-up: [AGENTIC_MAPPING.md](AGENTIC_MAPPING.md).
+
 ## What makes it deterministic
 
 "Deterministic" here means: run the pipeline on any machine, any number of

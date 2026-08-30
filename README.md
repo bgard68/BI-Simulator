@@ -22,6 +22,16 @@ seed, rebuilt from scratch by CI on every push so the deployed result is
 provably the product of the committed code — nothing hand-tweaked, nothing
 drifting.
 
+**And AI runs *inside* it, gated.** A 19th source the pipeline was never
+taught (`incoming/warranty_registrations.txt` — pipe-delimited, day-first
+dotted dates, prefixed SKUs, alien region codes, plus a prompt-injection
+canary) is integrated by an LLM that proposes the schema mapping from a
+closed transform vocabulary; eleven deterministic gates measure the proposal
+against the full file, and only a proposal that passes them all lands. CI
+replays the recorded, accepted run on every push — model inference on
+demand, governance always and for free. The recorded proposal cleared every
+gate on attempt 1. Details: [docs/AGENTIC_MAPPING.md](docs/AGENTIC_MAPPING.md).
+
 ![How the 18 sources flatten into one table](flatten_map.svg)
 
 ## Documentation
@@ -35,6 +45,9 @@ drifting.
 - **[docs/STAR_SCHEMA.md](docs/STAR_SCHEMA.md)** — the dimensional model
   hiding in the sources, the four join patterns (and the fan trap they
   avoid), what flattening costs, and how to map it all to Power BI.
+- **[docs/AGENTIC_MAPPING.md](docs/AGENTIC_MAPPING.md)** — the AI-in-the-loop
+  stage: an LLM proposes the schema mapping for an unseen source, eleven
+  deterministic gates decide, CI replays the decision on every push.
 
 ## Run it
 

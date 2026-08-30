@@ -1,0 +1,96 @@
+{
+ "meta": {
+  "backend": "claude-cli",
+  "model": "claude-haiku-4-5-20251001/claude-opus-5[1m]",
+  "created_utc": "2026-08-30T19:24:44+00:00",
+  "source_file": "incoming/warranty_registrations.txt",
+  "attempts": [
+   {
+    "attempt": 1,
+    "model": "claude-haiku-4-5-20251001/claude-opus-5[1m]",
+    "outcome": "accepted",
+    "structural_problems": [],
+    "failed_gates": []
+   }
+  ]
+ },
+ "proposal": {
+  "delimiter": "|",
+  "has_header": true,
+  "columns": [
+   {
+    "source": "REG_NO",
+    "target": "reg_id",
+    "transforms": [
+     "strip"
+    ]
+   },
+   {
+    "source": "ITEM_SKU",
+    "target": "product_id",
+    "transforms": [
+     "strip",
+     "upper",
+     "strip_prefix:SKU-"
+    ]
+   },
+   {
+    "source": "BUYER_EMAIL",
+    "target": "customer_email",
+    "transforms": [
+     "strip",
+     "lower"
+    ]
+   },
+   {
+    "source": "PURCHASED_ON",
+    "target": "purchase_date",
+    "transforms": [
+     "strip",
+     "date:%d.%m.%Y"
+    ]
+   },
+   {
+    "source": "SALES_CH",
+    "target": "channel",
+    "transforms": [
+     "strip",
+     "upper",
+     "value_map"
+    ]
+   },
+   {
+    "source": "COVER_YRS",
+    "target": "warranty_years",
+    "transforms": [
+     "strip",
+     "int"
+    ]
+   },
+   {
+    "source": "ZONE",
+    "target": "region",
+    "transforms": [
+     "strip",
+     "upper",
+     "value_map"
+    ]
+   }
+  ],
+  "value_maps": {
+   "channel": {
+    "WEB": "Online",
+    "SHOP": "Retail",
+    "BULK": "Wholesale",
+    "MKT": "Marketplace"
+   },
+   "region": {
+    "AMER": "North America",
+    "EMEA": "EMEA",
+    "APJ": "APAC",
+    "LATM": "LATAM"
+   }
+  },
+  "notes": "Pipe-delimited export with day-first dotted dates, SKU- prefixed product ids, and short channel/region codes needing whitespace and case cleanup before mapping."
+ }
+}

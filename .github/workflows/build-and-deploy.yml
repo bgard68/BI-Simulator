@@ -27,6 +27,10 @@ jobs:
           python generate_sources.py
           python etl.py
           python build_dashboard.py
+      - name: Agentic mapping replay gate
+        run: |
+          python generate_unknown_source.py
+          python mapper/validate_mapping.py
       - name: Assemble site
         run: |
           mkdir site
