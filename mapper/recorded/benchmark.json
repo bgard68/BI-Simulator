@@ -1,0 +1,486 @@
+{
+ "created_utc": "2026-08-30T20:57:33+00:00",
+ "backend": "claude-cli",
+ "variants": 50,
+ "mappable": 43,
+ "accepted": 43,
+ "accepted_first_attempt": 43,
+ "avg_attempts_when_accepted": 1.0,
+ "unmappable": 7,
+ "correctly_rejected": 7,
+ "correct_outcomes": 50,
+ "by_mode": {
+  "standard": {
+   "n": 17,
+   "correct": 17
+  },
+  "quoted": {
+   "n": 8,
+   "correct": 8
+  },
+  "hostile_headers": {
+   "n": 9,
+   "correct": 9
+  },
+  "noisy": {
+   "n": 9,
+   "correct": 9
+  },
+  "unmappable": {
+   "n": 7,
+   "correct": 7
+  }
+ },
+ "results": [
+  {
+   "seed": 1,
+   "mode": "standard",
+   "conventions": ";   date format: %Y%m%d   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 2,
+   "mode": "quoted",
+   "conventions": ",   date format: %d.%m.%Y   sku prefix: PN-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 3,
+   "mode": "hostile_headers",
+   "conventions": ";   date format: %Y%m%d   sku prefix: ITEM:",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 4,
+   "mode": "standard",
+   "conventions": ";   date format: %m-%d-%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 5,
+   "mode": "noisy",
+   "conventions": "^   date format: %m-%d-%Y   sku prefix: PN-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 6,
+   "mode": "standard",
+   "conventions": "^   date format: %d.%m.%Y   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 7,
+   "mode": "unmappable",
+   "conventions": "TAB   date format: %Y/%m/%d   sku prefix: (none)",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 3
+  },
+  {
+   "seed": 8,
+   "mode": "hostile_headers",
+   "conventions": ";   date format: %m-%d-%Y   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 9,
+   "mode": "standard",
+   "conventions": "~   date format: %Y%m%d   sku prefix: PN-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 10,
+   "mode": "noisy",
+   "conventions": "^   date format: %d.%m.%Y   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 11,
+   "mode": "standard",
+   "conventions": "~   date format: %Y%m%d   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 12,
+   "mode": "quoted",
+   "conventions": ";   date format: %Y%m%d   sku prefix: PN-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 13,
+   "mode": "hostile_headers",
+   "conventions": "TAB   date format: %m-%d-%Y   sku prefix: ITEM:",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 14,
+   "mode": "unmappable",
+   "conventions": "|   date format: %Y%m%d   sku prefix: ITEM:",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 3
+  },
+  {
+   "seed": 15,
+   "mode": "noisy",
+   "conventions": ";   date format: %d.%m.%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 16,
+   "mode": "standard",
+   "conventions": "TAB   date format: %d-%b-%Y   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 17,
+   "mode": "quoted",
+   "conventions": ";   date format: %m-%d-%Y   sku prefix: PN-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 18,
+   "mode": "hostile_headers",
+   "conventions": ";   date format: %d.%m.%Y   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 19,
+   "mode": "standard",
+   "conventions": "|   date format: %Y%m%d   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 20,
+   "mode": "noisy",
+   "conventions": ";   date format: %m-%d-%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 21,
+   "mode": "unmappable",
+   "conventions": ";   date format: %d-%b-%Y   sku prefix: (none)",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 3
+  },
+  {
+   "seed": 22,
+   "mode": "quoted",
+   "conventions": ",   date format: %d.%m.%Y   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 23,
+   "mode": "hostile_headers",
+   "conventions": "TAB   date format: %d.%m.%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 24,
+   "mode": "standard",
+   "conventions": "~   date format: %Y%m%d   sku prefix: ITEM:",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 25,
+   "mode": "noisy",
+   "conventions": "~   date format: %d.%m.%Y   sku prefix: ITEM:",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 26,
+   "mode": "standard",
+   "conventions": ";   date format: %Y/%m/%d   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 27,
+   "mode": "quoted",
+   "conventions": ";   date format: %m-%d-%Y   sku prefix: ITEM:",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 28,
+   "mode": "unmappable",
+   "conventions": "|   date format: %Y/%m/%d   sku prefix: ITEM:",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 3
+  },
+  {
+   "seed": 29,
+   "mode": "standard",
+   "conventions": "^   date format: %d.%m.%Y   sku prefix: PN-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 30,
+   "mode": "noisy",
+   "conventions": "^   date format: %m-%d-%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 31,
+   "mode": "standard",
+   "conventions": "|   date format: %d-%b-%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 32,
+   "mode": "quoted",
+   "conventions": ",   date format: %Y/%m/%d   sku prefix: PN-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 33,
+   "mode": "hostile_headers",
+   "conventions": "^   date format: %Y/%m/%d   sku prefix: ITEM:",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 34,
+   "mode": "standard",
+   "conventions": "^   date format: %m-%d-%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 35,
+   "mode": "unmappable",
+   "conventions": "^   date format: %m-%d-%Y   sku prefix: ITEM:",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 3
+  },
+  {
+   "seed": 36,
+   "mode": "standard",
+   "conventions": "TAB   date format: %d.%m.%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 37,
+   "mode": "quoted",
+   "conventions": ",   date format: %Y%m%d   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 38,
+   "mode": "hostile_headers",
+   "conventions": "~   date format: %d-%b-%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 39,
+   "mode": "standard",
+   "conventions": ";   date format: %m-%d-%Y   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 40,
+   "mode": "noisy",
+   "conventions": "~   date format: %Y%m%d   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 41,
+   "mode": "standard",
+   "conventions": "~   date format: %m-%d-%Y   sku prefix: ITEM:",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 42,
+   "mode": "unmappable",
+   "conventions": "|   date format: %d.%m.%Y   sku prefix: PN-",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 3
+  },
+  {
+   "seed": 43,
+   "mode": "hostile_headers",
+   "conventions": "|   date format: %m-%d-%Y   sku prefix: ITEM:",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 44,
+   "mode": "standard",
+   "conventions": "~   date format: %Y%m%d   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 45,
+   "mode": "noisy",
+   "conventions": "TAB   date format: %d-%b-%Y   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 46,
+   "mode": "standard",
+   "conventions": "|   date format: %d-%b-%Y   sku prefix: SKU-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 47,
+   "mode": "quoted",
+   "conventions": ",   date format: %d-%b-%Y   sku prefix: (none)",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 48,
+   "mode": "hostile_headers",
+   "conventions": "^   date format: %m-%d-%Y   sku prefix: ITEM:",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  },
+  {
+   "seed": 49,
+   "mode": "unmappable",
+   "conventions": "|   date format: %m-%d-%Y   sku prefix: (none)",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 3
+  },
+  {
+   "seed": 50,
+   "mode": "noisy",
+   "conventions": "~   date format: %m-%d-%Y   sku prefix: PN-",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1
+  }
+ ]
+}

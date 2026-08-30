@@ -148,8 +148,25 @@ exams has never demonstrated it can say no. `mapper/benchmark.py --count N`
 runs the whole set cold and scores *correct outcomes* — acceptances for
 mappable files, refusals for unmappable ones — writing statistics to
 `mapper/runs/benchmark.json` (checkpointed per variant; `--append` resumes,
-so long runs can be done in chunks). The published run is summarized on the
-[evidence page](https://bgard68.github.io/bi-simulator/mapping.html).
+so long runs can be done in chunks; `--publish` writes the committed summary
+the [evidence page](https://bgard68.github.io/bi-simulator/mapping.html)
+renders).
+
+**Published run — 50 variants, 50 correct outcomes:**
+
+| | |
+|---|---|
+| Mappable files accepted | 43/43 (all on the first attempt) |
+| Unmappable files refused | 7/7 |
+| By class | standard 17/17 · noisy 9/9 · hostile_headers 9/9 · quoted 8/8 · unmappable 7/7 |
+| Delimiters encountered | `;` `,` `^` `~` `\|` and TAB |
+
+Read that honestly: the retry-with-feedback loop is built and tested, but on
+this exam set it never had to fire — no accepted mapping needed a second
+attempt. That is a result about *this* model on *this* domain, not a claim
+that proposals never fail. What the run does establish is that the gates
+were never the thing standing between a good proposal and acceptance, and
+that refusal happens exactly where it should.
 
 The `live-map` workflow accepts a `seed` input, so all of this also runs
 from the browser's Run-workflow button.
