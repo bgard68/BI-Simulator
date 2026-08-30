@@ -63,6 +63,17 @@ Only a proposal that passes **every** gate writes
 report and nothing lands. See the accepted run's
 [`validation_report.md`](../mapper/recorded/validation_report.md).
 
+**And the gates themselves are tested.** One accepted run proves a good
+proposal passes; it does not prove a bad one fails. The suite in
+[`tests/test_gates.py`](../tests/test_gates.py) corrupts the recorded
+proposal one defect at a time — wrong date format, missing value-map entry,
+swapped join columns, unstripped prefix, wrong delimiter, a transform outside
+the whitelist, a non-canonical mapping, dropped and double-mapped targets —
+and asserts the *specific* gate that must reject each. It also asserts the
+injection canary is present and powerless, and that the unknown source
+regenerates byte-identical (the fact that makes CI replay meaningful). CI
+runs all of it on every push.
+
 The injection canary never gets a chance to matter: it is just a value in an
 email column, so it fails the customer join like any other bad row and is
 absorbed by the coverage slack. Content cannot vote.

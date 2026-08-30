@@ -33,7 +33,10 @@ closed transform vocabulary; eleven deterministic gates measure the proposal
 against the full file, and only a proposal that passes them all lands. CI
 replays the recorded, accepted run on every push — model inference on
 demand, governance always and for free. The recorded proposal cleared every
-gate on attempt 1. Details: [docs/AGENTIC_MAPPING.md](docs/AGENTIC_MAPPING.md).
+gate on attempt 1, and the gates themselves are covered by a negative-case
+test suite that feeds them deliberately corrupted proposals and asserts each
+is rejected by the right gate. Details:
+[docs/AGENTIC_MAPPING.md](docs/AGENTIC_MAPPING.md).
 
 ![How the 18 sources flatten into one table](flatten_map.svg)
 

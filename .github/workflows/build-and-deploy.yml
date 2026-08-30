@@ -32,6 +32,8 @@ jobs:
           python generate_unknown_source.py
           python mapper/validate_mapping.py
           python build_mapping_page.py
+      - name: Gate test suite (corrupted proposals must be rejected)
+        run: python -m unittest discover -s tests -v
       - name: Assemble site
         run: |
           mkdir site
