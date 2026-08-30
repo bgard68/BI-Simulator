@@ -99,7 +99,24 @@ The live site's **[mapping evidence page](https://bgard68.github.io/bi-simulator
 is generated from these exact artifacts (`build_mapping_page.py`) on every
 push: the raw unknown file, the canary row, the proposal's transform chains
 and value maps, and the gate-by-gate verdict — recomputed at build time so
-the page can never drift from the truth. For **live** runs from the browser,
+the page can never drift from the truth.
+
+It also **replays a real session**. `record_run.py` captures an actual run —
+commands, live stdout, and true timings — into
+`mapper/recorded/session.json`, which the page plays back in an embedded
+terminal. Nothing is re-typed or staged: every line was printed by a real
+process. The recorded session deliberately covers both outcomes on two files
+nobody had seen, generated moments earlier from fresh seeds:
+
+- **accepted** — the model reads a semicolon-delimited file with `YYYYMMDD`
+  dates and unfamiliar zone codes, and all eleven gates pass
+- **refused** — a file with no region column at all, where the model tries
+  three times, the feedback loop fires on each rejection
+  (`target 'region' must be mapped exactly once (mapped 0x)`), and nothing
+  lands
+
+That second scene is the one worth watching: it is the system declining to
+invent data it does not have. For **live** runs from the browser,
 the `live-map` workflow gives the repo an Actions "Run workflow" button; it
 needs the one-time `CLAUDE_CODE_OAUTH_TOKEN` repo secret (mint locally with
 `claude setup-token`).

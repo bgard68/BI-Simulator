@@ -1,0 +1,368 @@
+{
+ "created_utc": "2026-08-30T23:55:52+00:00",
+ "accept_seed": 621,
+ "refuse_seed": 630,
+ "total_seconds": 173.4,
+ "steps": [
+  {
+   "cmd": "python generate_unknown_source.py --seed 621",
+   "label": "accepted: a file nobody has seen",
+   "lines": [
+    {
+     "t": 0.17,
+     "text": "wrote incoming/variant_621.txt"
+    },
+    {
+     "t": 0.17,
+     "text": "  mode       : standard -- should be accepted"
+    },
+    {
+     "t": 0.17,
+     "text": "  rows       : 998"
+    },
+    {
+     "t": 0.17,
+     "text": "  delimiter  : TAB   date format: %Y%m%d   sku prefix: PN-"
+    },
+    {
+     "t": 0.17,
+     "text": "  headers    : ITEM_ID COVERAGE TERR CLAIM_REF EMAIL_ADDR SaleDate SOLD_VIA"
+    },
+    {
+     "t": 0.17,
+     "text": "  zones      : ['EAST', 'EMEA', 'NORTH', 'SOUTH']   channels: ['3PM', 'B2B', 'NET', 'POS']"
+    },
+    {
+     "t": 0.17,
+     "text": "now let the mapper face it:"
+    },
+    {
+     "t": 0.17,
+     "text": "  python mapper/propose_mapping.py --source incoming/variant_621.txt --out mapper/runs/variant_621.json"
+    },
+    {
+     "t": 0.17,
+     "text": "  python mapper/validate_mapping.py --proposal mapper/runs/variant_621.json --source incoming/variant_621.txt --report mapper/runs/variant_621_report."
+    }
+   ],
+   "duration": 0.19,
+   "exit_code": 0
+  },
+  {
+   "cmd": "python -c \"print(*open('incoming/variant_621.txt',encoding='utf-8').readlines()[:4],sep='')\"",
+   "label": "accepted: what it looks like",
+   "lines": [
+    {
+     "t": 0.06,
+     "text": "ITEM_ID\tCOVERAGE\tTERR\tCLAIM_REF\tEMAIL_ADDR\tSaleDate\tSOLD_VIA"
+    },
+    {
+     "t": 0.06,
+     "text": "PN-P1089\t2\tNORTH\tWR-202500001\tanders.haddad369@example.com\t20250703\tPOS"
+    },
+    {
+     "t": 0.06,
+     "text": "PN-P1056\t3\tEMEA\tWR-202500002\torders@egan488.example.com\t20251223\tB2B"
+    },
+    {
+     "t": 0.06,
+     "text": "PN-P1033\t1\tEMEA\tWR-202500003\tyuki.nilsson286@example.com\t20250224\tNET"
+    }
+   ],
+   "duration": 0.08,
+   "exit_code": 0
+  },
+  {
+   "cmd": "python mapper/propose_mapping.py --source incoming/variant_621.txt --out mapper/runs/variant_621.json",
+   "label": "accepted: the model proposes (gates decide)",
+   "lines": [
+    {
+     "t": 0.19,
+     "text": "attempt 1: calling model via claude-cli ..."
+    },
+    {
+     "t": 33.02,
+     "text": "accepted on attempt 1 -> mapper/runs/variant_621.json"
+    }
+   ],
+   "duration": 33.05,
+   "exit_code": 0
+  },
+  {
+   "cmd": "python mapper/validate_mapping.py --proposal mapper/runs/variant_621.json --source incoming/variant_621.txt --report mapper/runs/variant_621_report.md --out mapper/runs/variant_621_conformed.csv",
+   "label": "accepted: the eleven gates",
+   "lines": [
+    {
+     "t": 0.23,
+     "text": "PASS  S1-S4 structural: shape, coverage, whitelist, canonical maps  [ok]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  S5 proposed source columns exist in header  [header: ['ITEM_ID', 'COVERAGE', 'TERR', 'CLAIM_REF', 'EMAIL_ADDR', 'SaleDate', 'SOLD_VIA']]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  E1 every row splits into the header's column count  [0 of 998 rows malformed]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  E2 row count preserved  [998 of 998]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  E3 reg_id present and unique  [998 distinct of 998]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  E4 dates parse (>=99%) and fall in the business window  [parsed 998/998, in-window 998/998]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  E5 customer join coverage >= 95% (email -> CRM)  [984/998 = 98.6% (14 unmatched, incl. any injection canary)]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  E6 product join coverage >= 97% (sku -> catalog)  [998/998 = 100.0%]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  E7 channels 100% canonical and >=95% agree with ERP  [all canonical; 984/984 = 100.0% agree with the ERP channel for that purchase]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  E8 regions 100% canonical and >=95% agree with CRM  [all canonical; 984/984 = 100.0% agree with the joined customer's CRM region]"
+    },
+    {
+     "t": 0.23,
+     "text": "PASS  E9 warranty_years all integers in 1..5  [distinct values: [1, 2, 3, 5]]"
+    },
+    {
+     "t": 0.23,
+     "text": "ACCEPTED -> mapper/runs/variant_621_conformed.csv (998 rows)"
+    },
+    {
+     "t": 0.23,
+     "text": "report   -> mapper/runs/variant_621_report.md"
+    }
+   ],
+   "duration": 0.23,
+   "exit_code": 0
+  },
+  {
+   "cmd": "python generate_unknown_source.py --seed 630",
+   "label": "refused: a file nobody has seen",
+   "lines": [
+    {
+     "t": 0.17,
+     "text": "wrote incoming/variant_630.txt"
+    },
+    {
+     "t": 0.17,
+     "text": "  mode       : unmappable -- SHOULD BE REJECTED (no region column exists -- the contract cannot be satisfied)"
+    },
+    {
+     "t": 0.17,
+     "text": "  rows       : 982"
+    },
+    {
+     "t": 0.17,
+     "text": "  delimiter  : ~   date format: %Y/%m/%d   sku prefix: SKU-"
+    },
+    {
+     "t": 0.17,
+     "text": "  headers    : WRTY_ID PURCHASER SOLD_VIA BOUGHT TERM_Y ProductCode"
+    },
+    {
+     "t": 0.17,
+     "text": "  zones      : ['APAC', 'EUR', 'NAM', 'SAM']   channels: ['3PM', 'B2B', 'NET', 'POS']"
+    },
+    {
+     "t": 0.17,
+     "text": "now let the mapper face it:"
+    },
+    {
+     "t": 0.17,
+     "text": "  python mapper/propose_mapping.py --source incoming/variant_630.txt --out mapper/runs/variant_630.json"
+    },
+    {
+     "t": 0.17,
+     "text": "  python mapper/validate_mapping.py --proposal mapper/runs/variant_630.json --source incoming/variant_630.txt --report mapper/runs/variant_630_report."
+    }
+   ],
+   "duration": 0.19,
+   "exit_code": 0
+  },
+  {
+   "cmd": "python -c \"print(*open('incoming/variant_630.txt',encoding='utf-8').readlines()[:4],sep='')\"",
+   "label": "refused: what it looks like",
+   "lines": [
+    {
+     "t": 0.09,
+     "text": "WRTY_ID~PURCHASER~SOLD_VIA~BOUGHT~TERM_Y~ProductCode"
+    },
+    {
+     "t": 0.09,
+     "text": "WR-202500001~kenji.svensson328@example.com~NET~2025/10/13~2~SKU-P1005"
+    },
+    {
+     "t": 0.09,
+     "text": "WR-202600002~diego.fontaine797@example.com~3PM~2026/06/29~5~SKU-P1033"
+    },
+    {
+     "t": 0.09,
+     "text": "WR-202500003~orders@voss631.example.com~B2B~2025/01/17~3~SKU-P1042"
+    }
+   ],
+   "duration": 0.11,
+   "exit_code": 0
+  },
+  {
+   "cmd": "python mapper/propose_mapping.py --source incoming/variant_630.txt --out mapper/runs/variant_630.json",
+   "label": "refused: the model proposes (gates decide)",
+   "lines": [
+    {
+     "t": 0.2,
+     "text": "attempt 1: calling model via claude-cli ..."
+    },
+    {
+     "t": 22.47,
+     "text": "  rejected: 1 problem(s); retrying with feedback"
+    },
+    {
+     "t": 22.47,
+     "text": "attempt 2: calling model via claude-cli ..."
+    },
+    {
+     "t": 85.83,
+     "text": "  rejected: 1 problem(s); retrying with feedback"
+    },
+    {
+     "t": 85.84,
+     "text": "attempt 3: calling model via claude-cli ..."
+    },
+    {
+     "t": 139.53,
+     "text": "  rejected: 1 problem(s); retrying with feedback"
+    },
+    {
+     "t": 139.53,
+     "text": "no proposal survived the gates; attempts: ["
+    },
+    {
+     "t": 139.53,
+     "text": " {"
+    },
+    {
+     "t": 139.53,
+     "text": "  \"attempt\": 1,"
+    },
+    {
+     "t": 139.53,
+     "text": "  \"model\": \"claude-haiku-4-5-20251001/claude-opus-5[1m]\","
+    },
+    {
+     "t": 139.53,
+     "text": "  \"outcome\": \"rejected\","
+    },
+    {
+     "t": 139.53,
+     "text": "  \"structural_problems\": ["
+    },
+    {
+     "t": 139.53,
+     "text": "   \"target 'region' must be mapped exactly once (mapped 0x)\""
+    },
+    {
+     "t": 139.53,
+     "text": "  ],"
+    },
+    {
+     "t": 139.53,
+     "text": "  \"failed_gates\": []"
+    },
+    {
+     "t": 139.53,
+     "text": " },"
+    },
+    {
+     "t": 139.53,
+     "text": " {"
+    },
+    {
+     "t": 139.53,
+     "text": "  \"attempt\": 2,"
+    },
+    {
+     "t": 139.53,
+     "text": "  \"model\": \"claude-haiku-4-5-20251001/claude-opus-5[1m]\","
+    },
+    {
+     "t": 139.53,
+     "text": "  \"outcome\": \"rejected\","
+    },
+    {
+     "t": 139.53,
+     "text": "  \"structural_problems\": ["
+    },
+    {
+     "t": 139.53,
+     "text": "   \"target 'region' must be mapped exactly once (mapped 0x)\""
+    },
+    {
+     "t": 139.53,
+     "text": "  ],"
+    },
+    {
+     "t": 139.53,
+     "text": "  \"failed_gates\": []"
+    },
+    {
+     "t": 139.53,
+     "text": " },"
+    },
+    {
+     "t": 139.53,
+     "text": " {"
+    },
+    {
+     "t": 139.53,
+     "text": "  \"attempt\": 3,"
+    },
+    {
+     "t": 139.53,
+     "text": "  \"model\": \"claude-haiku-4-5-20251001/claude-opus-5[1m]\","
+    },
+    {
+     "t": 139.53,
+     "text": "  \"outcome\": \"rejected\","
+    },
+    {
+     "t": 139.53,
+     "text": "  \"structural_problems\": ["
+    },
+    {
+     "t": 139.53,
+     "text": "   \"target 'region' must be mapped exactly once (mapped 0x)\""
+    },
+    {
+     "t": 139.53,
+     "text": "  ],"
+    },
+    {
+     "t": 139.53,
+     "text": "  \"failed_gates\": []"
+    },
+    {
+     "t": 139.53,
+     "text": " }"
+    },
+    {
+     "t": 139.53,
+     "text": "]"
+    }
+   ],
+   "duration": 139.55,
+   "exit_code": 1
+  }
+ ]
+}

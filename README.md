@@ -6,8 +6,9 @@
 **Live demo: <https://bgard68.github.io/bi-simulator/>** — an interactive,
 Power BI-style dashboard rebuilt from scratch by CI on every push. The
 **[mapping evidence page](https://bgard68.github.io/bi-simulator/mapping.html)**
-shows the AI-in-the-loop stage's recorded run: the unknown file, the model's
-proposal, and the eleven-gate verdict.
+replays a real AI mapping session in an embedded terminal — one unseen file
+accepted, one correctly refused — alongside the model's proposal, the
+eleven-gate verdict, and the 50-variant benchmark.
 
 A self-contained simulation of a real BI pipeline for a fictional outdoor-gear
 retailer ("Cobalt Outfitters"): fabricate 18 source systems the way each would

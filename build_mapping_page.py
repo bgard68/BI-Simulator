@@ -20,6 +20,7 @@ import mapping_lib as lib
 SOURCE = os.path.join(ROOT, "incoming", "warranty_registrations.txt")
 RECORDED = os.path.join(ROOT, "mapper", "recorded", "proposal.json")
 BENCH = os.path.join(ROOT, "mapper", "recorded", "benchmark.json")
+SESSION = os.path.join(ROOT, "mapper", "recorded", "session.json")
 OUT = os.path.join(ROOT, "output", "mapping.html")
 REPO = "https://github.com/bgard68/bi-simulator"
 
@@ -84,6 +85,84 @@ for name, ok, detail in gates:
 
 verdict = ('<span class="pill pass big">ACCEPTED</span>' if all_ok
            else '<span class="pill fail big">REJECTED</span>')
+
+# --- optional recorded-session player (only if a session was recorded) ---
+term_html = ""
+if os.path.exists(SESSION):
+    with open(SESSION, encoding="utf-8") as f:
+        session = json.load(f)
+    term_html = f"""
+  <section class="card">
+    <div class="thead">
+      <div>
+        <h2>Watch a real run</h2>
+        <p class="csub">Two files neither the model nor anyone else had seen, mapped
+        back to back on {E(session.get("created_utc", "")[:10])}. Every line below was
+        printed by an actual process &mdash; {E(str(session.get("total_seconds")))}s of
+        real session, replayed with the pauses shortened.</p>
+      </div>
+      <button class="tbtn" id="replay" type="button">Replay</button>
+    </div>
+    <div class="term" id="term"></div>
+  </section>
+  <script id="session" type="application/json">{json.dumps(session)}</script>
+  <script>
+  (function () {{
+    var s = JSON.parse(document.getElementById("session").textContent);
+    var host = document.getElementById("term"), timers = [], reduce =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function cls(t) {{
+      if (/^PASS/.test(t)) return "ok";
+      if (/^(FAIL|REJECTED|no proposal)/.test(t)) return "bad";
+      if (/^ACCEPTED/.test(t)) return "ok";
+      if (/rejected:/.test(t)) return "warn";
+      return "";
+    }}
+    function add(text, kind) {{
+      var d = document.createElement("div");
+      d.className = "tl " + (kind || "");
+      d.textContent = text;
+      host.appendChild(d);
+      host.scrollTop = host.scrollHeight;
+      return d;
+    }}
+    function play(instant) {{
+      timers.forEach(clearTimeout); timers = []; host.textContent = "";
+      var clock = 0;
+      s.steps.forEach(function (st) {{
+        var head = "$ " + st.cmd;
+        (function (h, lbl, at) {{
+          timers.push(setTimeout(function () {{
+            add(lbl, "lbl"); add(h, "cmd");
+          }}, instant ? 0 : at));
+        }})(head, "# " + st.label, clock);
+        clock += instant ? 0 : 420;
+        var prev = 0;
+        st.lines.forEach(function (l) {{
+          var gap = Math.min((l.t - prev) * 1000, 850);
+          prev = l.t; clock += instant ? 0 : Math.max(gap, 45);
+          (function (txt, at) {{
+            timers.push(setTimeout(function () {{ add(txt, cls(txt)); }},
+              instant ? 0 : at));
+          }})(l.text, clock);
+        }});
+        clock += instant ? 0 : 500;
+      }});
+    }}
+    document.getElementById("replay").addEventListener("click", function () {{
+      play(false);
+    }});
+    if (reduce) {{ play(true); }}
+    else {{
+      var seen = false;
+      new IntersectionObserver(function (es) {{
+        es.forEach(function (e) {{
+          if (e.isIntersecting && !seen) {{ seen = true; play(false); }}
+        }});
+      }}, {{ threshold: 0.25 }}).observe(host);
+    }}
+  }})();
+  </script>"""
 
 # --- optional benchmark section (published only if a run was recorded) ----
 bench_html = ""
@@ -195,6 +274,18 @@ page = f"""<!doctype html>
   .pair {{ display:flex; gap:4px; font-size:12.5px; padding:1px 0; }}
   .meta {{ display:flex; gap:18px; flex-wrap:wrap; color:var(--ink2); font-size:12.5px; }}
   .meta b {{ color: var(--ink); font-weight:600; }}
+  .thead {{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }}
+  .term {{
+    margin-top:12px; background:var(--page); border:1px solid var(--grid);
+    border-radius:8px; padding:12px 14px; height:300px; overflow-y:auto;
+    font-family:ui-monospace,Consolas,monospace; font-size:12px; line-height:1.55;
+  }}
+  .term .tl {{ white-space:pre-wrap; word-break:break-word; color:var(--ink2); }}
+  .term .cmd {{ color:var(--s1); font-weight:600; }}
+  .term .lbl {{ color:var(--muted); margin-top:10px; }}
+  .term .ok {{ color:var(--good); }}
+  .term .bad {{ color:var(--bad); font-weight:600; }}
+  .term .warn {{ color:var(--ink); }}
   .bstats {{ display:flex; gap:26px; flex-wrap:wrap; margin:12px 0 14px; }}
   .bv {{ font-size:22px; font-weight:650; letter-spacing:-0.01em; }}
   .bl {{ color:var(--muted); font-size:12px; }}
@@ -219,6 +310,8 @@ page = f"""<!doctype html>
       <a href="{REPO}/blob/main/docs/AGENTIC_MAPPING.md">How it works</a>
     </nav>
   </header>
+
+{term_html}
 
   <section class="card">
     <h2>1 &mdash; The unknown source</h2>

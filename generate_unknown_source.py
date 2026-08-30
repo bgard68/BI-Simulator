@@ -87,7 +87,7 @@ def canonical():
         for r in rows:
             f.write("|".join(r) + "\n")
 
-    print(f"wrote {path}")
+    print(f"wrote {os.path.relpath(path, ROOT).replace(os.sep, '/')}")
     print(f"  rows            : {len(rows)}")
     print(f"  unknown emails  : ~2% + 1 injection canary (line {canary + 2} of file)")
     print(f"  date format     : DD.MM.YYYY   delimiter: |   sku prefix: SKU-")
@@ -212,7 +212,7 @@ def variant(seed, mode="auto"):
                            "steer the mapping)",
         "standard": "should be accepted",
     }[mode]
-    print(f"wrote {path}")
+    print(f"wrote {os.path.relpath(path, ROOT).replace(os.sep, '/')}")
     print(f"  mode       : {mode} -- {expectation}")
     print(f"  rows       : {n}")
     print(f"  delimiter  : {delim_name}   date format: {datefmt}   "
