@@ -55,7 +55,8 @@ file** (not the sample the model saw) and measures the result:
 | E4 | dates ≥99% parseable and inside the business window |
 | E5 | ≥95% of emails join to real CRM customers |
 | E6 | ≥97% of SKUs join to the product catalog |
-| E7–E8 | channels and regions 100% canonical after mapping |
+| E7 | channels 100% canonical after mapping |
+| E8 | regions 100% canonical **and ≥95% agree with the joined customer's CRM region** — a wrong-but-canonical guess (EAST → EMEA) is exactly the silent error a membership check alone would miss |
 | E9 | warranty years all integers in 1..5 |
 
 Only a proposal that passes **every** gate writes
@@ -88,6 +89,42 @@ the page can never drift from the truth. For **live** runs from the browser,
 the `live-map` workflow gives the repo an Actions "Run workflow" button; it
 needs the one-time `CLAUDE_CODE_OAUTH_TOKEN` repo secret (mint locally with
 `claude setup-token`).
+
+## After acceptance: the source actually lands
+
+The conformed output feeds the pipeline like any other source — but as
+**optional input**: `etl.py` joins warranty registrations onto the order-line
+grain (aggregate-first, the same fan-trap defense as every many-to-one
+source) only when a gate-approved `warranty_conformed.csv` exists. The
+dashboard then shows the payoff: a 19th lineage chip wearing an
+**AI-MAPPED** badge that links to this evidence, and a warranty attach rate
+in the service-quality card. If the mapping stage never ran, the pipeline
+still builds and the stat reads "—". The deterministic pipeline never takes
+a hard dependency on a model's output; the AI stage can only add, never break.
+
+## The audience picks the exam: variant mode
+
+The canonical fixture proves the loop once. Variant mode removes the "you
+wrote the exam" objection in the room:
+
+```
+python generate_unknown_source.py --seed 4217   # any number, ideally theirs
+```
+
+Each seed deterministically draws **different conventions** — delimiter
+(pipe, semicolon, tab, tilde, caret), date format, header vocabulary, SKU
+prefix style, alien channel/region code sets, even the column order — so the
+specific file is unseen by everyone, including the author, until the moment
+it is generated. The script prints the exact propose/validate commands to
+run next. And `mapper/benchmark.py --count N` turns that into measurement:
+N variants, N cold model runs, acceptance and retry statistics written to
+`mapper/runs/benchmark.json` — "how often does it fail?" answered with data.
+(Early numbers: the first four live variant runs — tab, caret, semicolon and
+tilde delimited, three date formats, shuffled columns — were all accepted on
+the first attempt, with region maps at 100% CRM agreement.)
+
+The `live-map` workflow accepts a `seed` input, so all of this also runs
+from the browser's Run-workflow button.
 
 ## Replay: free forever, checked on every push
 

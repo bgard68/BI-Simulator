@@ -22,15 +22,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Run the pipeline (generate -> flatten -> build)
+      - name: Generate the world and the unknown source
         run: |
           python generate_sources.py
+          python generate_unknown_source.py
+      - name: Agentic mapping replay gate (must pass before anything lands)
+        run: python mapper/validate_mapping.py
+      - name: Flatten and build (19th source joins via its gated output)
+        run: |
           python etl.py
           python build_dashboard.py
-      - name: Agentic mapping replay gate
-        run: |
-          python generate_unknown_source.py
-          python mapper/validate_mapping.py
           python build_mapping_page.py
       - name: Gate test suite (corrupted proposals must be rejected)
         run: python -m unittest discover -s tests -v
@@ -40,6 +41,7 @@ jobs:
           cp output/dashboard.html site/index.html
           cp output/mapping.html site/mapping.html
           cp warehouse/flat_sales.csv site/flat_sales.csv
+          cp warehouse/warranty_conformed.csv site/warranty_conformed.csv
           cp flatten_map.svg site/flatten_map.svg
           (cd sources && zip -r ../site/sources.zip .)
       - uses: actions/upload-pages-artifact@v3

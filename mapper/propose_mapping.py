@@ -58,16 +58,16 @@ FILE SAMPLE ({name}, {total} data rows total; header + excerpt):
 {feedback}"""
 
 
-def build_sample():
-    with open(SOURCE, encoding="utf-8") as f:
+def build_sample(source):
+    with open(source, encoding="utf-8") as f:
         lines = [ln.rstrip("\n") for ln in f]
     total = len(lines) - 1
     picks = lines[:26] + [lines[i] for i in range(200, min(len(lines), 1001), 200)]
     return "\n".join(picks), total
 
 
-def build_prompt(feedback=""):
-    sample, total = build_sample()
+def build_prompt(source, feedback=""):
+    sample, total = build_sample(source)
     fb = ""
     if feedback:
         fb = ("\nYOUR PREVIOUS PROPOSAL FAILED THESE DETERMINISTIC GATES -- "
@@ -75,7 +75,7 @@ def build_prompt(feedback=""):
     return PROMPT.format(
         contract=json.dumps(lib.TARGET_FIELDS, indent=1),
         transforms=lib.TRANSFORMS_DOC,
-        name=os.path.basename(SOURCE), total=total, sample=sample, feedback=fb)
+        name=os.path.basename(source), total=total, sample=sample, feedback=fb)
 
 
 def extract_json(text):
@@ -116,23 +116,14 @@ def call_openai_compatible(prompt):
     return body["choices"][0]["message"]["content"], model
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", choices=["claude-cli", "openai-compatible"],
-                    default="claude-cli")
-    ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--max-attempts", type=int, default=3)
-    args = ap.parse_args()
-
-    if args.dry_run:
-        print(build_prompt())
-        return 0
-
-    call = call_claude_cli if args.backend == "claude-cli" else call_openai_compatible
+def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False):
+    """The propose -> gate -> feedback loop. Returns (accepted, attempts)."""
+    say = (lambda *a: None) if quiet else print
+    call = call_claude_cli if backend == "claude-cli" else call_openai_compatible
     attempts, feedback = [], ""
-    for attempt in range(1, args.max_attempts + 1):
-        prompt = build_prompt(feedback)
-        print(f"attempt {attempt}: calling model via {args.backend} ...")
+    for attempt in range(1, max_attempts + 1):
+        prompt = build_prompt(source, feedback)
+        say(f"attempt {attempt}: calling model via {backend} ...")
         reply, model = call(prompt)
         try:
             proposal = extract_json(reply)
@@ -145,26 +136,49 @@ def main():
         problems = lib.structural_check(proposal)
         failed = []
         if not problems:
-            gates, _ = lib.apply_and_gate(proposal, SOURCE)
+            gates, _ = lib.apply_and_gate(proposal, source)
             failed = [f"{name}: {detail}" for name, ok, detail in gates if not ok]
         outcome = "accepted" if not problems and not failed else "rejected"
         attempts.append({"attempt": attempt, "model": model, "outcome": outcome,
                          "structural_problems": problems, "failed_gates": failed})
         if outcome == "accepted":
-            os.makedirs(os.path.dirname(RECORDED), exist_ok=True)
-            with open(RECORDED, "w", encoding="utf-8") as f:
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            with open(out, "w", encoding="utf-8") as f:
                 json.dump({"meta": {
-                    "backend": args.backend, "model": model,
+                    "backend": backend, "model": model,
                     "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                    "source_file": os.path.relpath(SOURCE, ROOT).replace(os.sep, "/"),
+                    "source_file": os.path.relpath(source, ROOT).replace(os.sep, "/"),
                     "attempts": attempts,
                 }, "proposal": proposal}, f, indent=1)
-            print(f"accepted on attempt {attempt} -> {RECORDED}")
-            print("now run: python mapper/validate_mapping.py")
-            return 0
+            say(f"accepted on attempt {attempt} -> {out}")
+            return True, attempts
         feedback = "\n".join(problems + failed)
-        print(f"  rejected: {len(problems) + len(failed)} problem(s); retrying with feedback")
+        say(f"  rejected: {len(problems) + len(failed)} problem(s); retrying with feedback")
+    return False, attempts
 
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--backend", choices=["claude-cli", "openai-compatible"],
+                    default="claude-cli")
+    ap.add_argument("--source", default=SOURCE,
+                    help="unknown file to map (default: the canonical fixture)")
+    ap.add_argument("--out", default=RECORDED,
+                    help="where to write the accepted proposal")
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--max-attempts", type=int, default=3)
+    args = ap.parse_args()
+
+    if args.dry_run:
+        print(build_prompt(args.source))
+        return 0
+
+    accepted, attempts = run_propose(args.source, args.out,
+                                     args.backend, args.max_attempts)
+    if accepted:
+        if os.path.abspath(args.out) == os.path.abspath(RECORDED):
+            print("now run: python mapper/validate_mapping.py")
+        return 0
     print("no proposal survived the gates; attempts:", json.dumps(attempts, indent=1))
     return 1
 

@@ -112,14 +112,19 @@ def structural_check(proposal):
     return problems
 
 
+REGION_NAMES = {"NA": "North America", "EMEA": "EMEA", "APAC": "APAC", "LATAM": "LATAM"}
+
+
 def load_lookups():
-    emails = set()
+    emails, email_region = set(), {}
     with open(os.path.join(SRC, "crm_customers.csv"), newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
-            emails.add(r["email"].strip().lower())
+            e = r["email"].strip().lower()
+            emails.add(e)
+            email_region[e] = REGION_NAMES[r["region"].strip().upper()]
     with open(os.path.join(SRC, "product_catalog.json"), encoding="utf-8") as f:
         products = {p["product_id"] for p in json.load(f)}
-    return emails, products
+    return emails, products, email_region
 
 
 def apply_and_gate(proposal, source_path):
@@ -130,7 +135,7 @@ def apply_and_gate(proposal, source_path):
     when every gate passed).
     """
     gates = []
-    emails, products = load_lookups()
+    emails, products, email_region = load_lookups()
     vm = proposal.get("value_maps", {})
     delim = proposal["delimiter"]
     colmap = {c["source"]: c for c in proposal["columns"]}
@@ -201,7 +206,20 @@ def apply_and_gate(proposal, source_path):
     bad_ch = {r.get("channel") for r in conformed} - set(CANONICAL_CHANNELS)
     bad_rg = {r.get("region") for r in conformed} - set(CANONICAL_REGIONS)
     gates.append(("E7 channels 100% canonical", not bad_ch, f"offenders: {sorted(map(str, bad_ch))[:5]}" if bad_ch else "all canonical"))
-    gates.append(("E8 regions 100% canonical", not bad_rg, f"offenders: {sorted(map(str, bad_rg))[:5]}" if bad_rg else "all canonical"))
+    # canonical alone is not enough: a wrong-but-canonical mapping (EAST ->
+    # EMEA) would pass a membership check. The CRM is ground truth for joined
+    # customers, so the mapped region must also AGREE with it.
+    joined = [r for r in conformed
+              if r.get("customer_email") in email_region and r.get("region")]
+    agree = sum(1 for r in joined
+                if r["region"] == email_region[r["customer_email"]])
+    agree_rate = agree / len(joined) if joined else 0
+    ok_rg = not bad_rg and agree_rate >= 0.95
+    detail_rg = (f"offenders: {sorted(map(str, bad_rg))[:5]}" if bad_rg
+                 else f"all canonical; {agree}/{len(joined)} = {agree_rate:.1%} "
+                      f"agree with the joined customer's CRM region")
+    gates.append(("E8 regions 100% canonical and >=95% agree with CRM",
+                  ok_rg, detail_rg))
 
     wy = [r.get("warranty_years") for r in conformed]
     ok_wy = all(isinstance(w, int) and 1 <= w <= 5 for w in wy)

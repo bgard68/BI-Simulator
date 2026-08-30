@@ -111,6 +111,16 @@ class TestEmpiricalGates(unittest.TestCase):
         ok, detail = gate(self.run_gates(p), "E8")
         self.assertFalse(ok, detail)
 
+    def test_wrong_but_canonical_region_map_fails_E8(self):
+        # both targets are canonical values, so a membership check alone
+        # would pass -- only the CRM ground-truth agreement catches it
+        def swap(p):
+            vm = p["value_maps"]["region"]
+            vm["APJ"], vm["LATM"] = vm["LATM"], vm["APJ"]
+        ok, detail = gate(self.run_gates(corrupted(x=swap)), "E8")
+        self.assertFalse(ok, detail)
+        self.assertIn("agree", detail)
+
     def test_swapped_join_columns_fail_E5(self):
         def swap(p):
             col(p, "BUYER_EMAIL")["target"] = "reg_id"
@@ -139,6 +149,27 @@ class TestContainment(unittest.TestCase):
         ok, detail = gate(gates, "E5")
         self.assertTrue(ok, detail)          # gates still pass overall...
         self.assertIn("unmatched", detail)   # ...with the canary counted as a failed join
+
+
+class TestVariants(unittest.TestCase):
+    def test_variant_deterministic_per_seed_and_unlike_canonical(self):
+        path = os.path.join(ROOT, "incoming", "variant_77.txt")
+        def gen():
+            r = subprocess.run([sys.executable,
+                                os.path.join(ROOT, "generate_unknown_source.py"),
+                                "--seed", "77"], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            with open(path, "rb") as f:
+                return hashlib.sha256(f.read()).hexdigest()
+        h1, h2 = gen(), gen()
+        self.assertEqual(h1, h2, "same seed must produce identical bytes")
+        with open(path, encoding="utf-8") as f:
+            variant_header = f.readline()
+        with open(SOURCE, encoding="utf-8") as f:
+            canonical_header = f.readline()
+        self.assertNotEqual(variant_header, canonical_header,
+                            "variant conventions should differ from the fixture")
+        os.remove(path)
 
 
 class TestDeterminism(unittest.TestCase):

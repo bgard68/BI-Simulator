@@ -9,8 +9,12 @@ name: live-map
 on:
   workflow_dispatch:
     inputs:
+      seed:
+        description: "Variant seed for an unseen-conventions demo (leave empty for the canonical fixture)"
+        type: string
+        default: ""
       record:
-        description: "Commit the accepted proposal as the new recorded run"
+        description: "Commit the accepted proposal as the new recorded run (canonical only)"
         type: boolean
         default: false
 
@@ -39,16 +43,42 @@ jobs:
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
       - name: Generate the world and the unknown source
+        env:
+          SEED: ${{ inputs.seed }}
         run: |
           python generate_sources.py
-          python generate_unknown_source.py
+          if [ -n "$SEED" ]; then
+            python generate_unknown_source.py --seed "$SEED"
+          else
+            python generate_unknown_source.py
+          fi
       - name: Live propose (model gets a voice)
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-        run: python mapper/propose_mapping.py --backend claude-cli
+          SEED: ${{ inputs.seed }}
+        run: |
+          if [ -n "$SEED" ]; then
+            python mapper/propose_mapping.py --backend claude-cli \
+              --source "incoming/variant_${SEED}.txt" \
+              --out "mapper/runs/variant_${SEED}.json"
+          else
+            python mapper/propose_mapping.py --backend claude-cli
+          fi
       - name: Deterministic gates (the vote)
-        run: python mapper/validate_mapping.py
-      - name: Build the evidence page
+        env:
+          SEED: ${{ inputs.seed }}
+        run: |
+          if [ -n "$SEED" ]; then
+            python mapper/validate_mapping.py \
+              --proposal "mapper/runs/variant_${SEED}.json" \
+              --source "incoming/variant_${SEED}.txt" \
+              --report "mapper/runs/variant_${SEED}_report.md" \
+              --out "mapper/runs/variant_${SEED}_conformed.csv"
+          else
+            python mapper/validate_mapping.py
+          fi
+      - name: Build the evidence page (canonical runs only)
+        if: ${{ inputs.seed == '' }}
         run: python build_mapping_page.py
       - uses: actions/upload-artifact@v4
         with:
@@ -56,10 +86,12 @@ jobs:
           path: |
             mapper/recorded/proposal.json
             mapper/recorded/validation_report.md
+            mapper/runs/
             warehouse/warranty_conformed.csv
             output/mapping.html
+          if-no-files-found: ignore
       - name: Commit the new recorded run
-        if: ${{ inputs.record }}
+        if: ${{ inputs.record && inputs.seed == '' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

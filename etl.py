@@ -66,6 +66,7 @@ customers = {}
 for r in read_csv("crm_customers.csv"):
     customers[r["customer_id"]] = {
         "name": r["full_name"], "segment": r["segment"],
+        "email": r["email"].strip().lower(),
         "region": conform_region(r["region"]),
         "signup": parse_date(r["signup_date"], "%m/%d/%Y")}
 track("crm_customers.csv", "CRM", "CSV", len(customers), "customer dim")
@@ -182,6 +183,31 @@ for el in tree.getroot():
     costs[el.get("id")] = float(el.get("unit_cost_usd"))
 track("supplier_pricelist.xml", "Procurement", "XML", len(costs), "unit costs")
 
+# 19. (gated) warranty registrations -- the AI-mapped unknown source. This is
+# OPTIONAL input: it exists only if mapper/validate_mapping.py accepted a
+# model's proposal, and the pipeline must never depend on a model's output.
+# Aggregate-first (max years per customer+product+date), then join: the same
+# fan-trap defense as every other many-to-one source.
+warranty = {}
+_wc = os.path.join(WH, "warranty_conformed.csv")
+if os.path.exists(_wc):
+    email_to_cid = {v["email"]: k for k, v in customers.items()}
+    _wrows = 0
+    with open(_wc, newline="", encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            _wrows += 1
+            cid = email_to_cid.get(r["customer_email"])
+            if not cid:
+                continue
+            key = (cid, r["product_id"], r["purchase_date"])
+            y = int(r["warranty_years"])
+            if warranty.get(key, 0) < y:
+                warranty[key] = y
+    lineage.append({"file": "incoming/warranty_registrations.txt",
+                    "system": "Warranty portal", "format": "TXT",
+                    "rows": _wrows, "role": "AI-mapped, gated by 11 checks",
+                    "gated": True})
+
 # ============================================================ TRANSFORM: flatten
 flat = []
 skipped_cancelled = 0
@@ -232,6 +258,8 @@ for it in items:
         "customer_nps": nps_latest.get(o["customer_id"], ""),
         "stock_on_hand": stock.get(it["product_id"], 0),
         "order_status": o["status"],
+        "registered_warranty": (o["customer_id"], it["product_id"], o["order_date"]) in warranty,
+        "warranty_years": warranty.get((o["customer_id"], it["product_id"], o["order_date"]), ""),
     })
 
 # ============================================================ LOAD
@@ -243,7 +271,7 @@ with open(os.path.join(WH, "flat_sales.csv"), "w", newline="", encoding="utf-8")
 
 # Compact rows for the dashboard (array-of-arrays keeps the embed small)
 cols = ["d", "rg", "ch", "sg", "ca", "br", "pr", "st", "cp", "q",
-        "rv", "mg", "rt", "lt", "pm", "np", "tk", "o", "sh", "rr"]
+        "rv", "mg", "rt", "lt", "pm", "np", "tk", "o", "sh", "rr", "wr"]
 rows = [[r["order_date"], r["region"], r["channel"], r["segment"], r["category"],
          r["brand"], r["product_name"], r["store_name"],
          r["campaign_name"] or None, r["qty"], round(r["revenue_usd"], 2),
@@ -251,12 +279,14 @@ rows = [[r["order_date"], r["region"], r["channel"], r["segment"], r["category"]
          1 if r["late_delivery"] else 0, r["payment_method"],
          r["customer_nps"] if r["customer_nps"] != "" else None,
          r["tickets_on_order"], int(r["order_id"][2:]),
-         1 if r["carrier"] else 0, r["return_reason"] or None] for r in flat]
+         1 if r["carrier"] else 0, r["return_reason"] or None,
+         r["warranty_years"] if r["warranty_years"] != "" else None] for r in flat]
 
 dashboard = {
     "meta": {"company": "Cobalt Outfitters", "grain": "order line",
              "span": [flat[0]["order_date"][:10], max(r["order_date"] for r in flat)],
-             "sources": len(lineage), "orders": len({r["order_id"] for r in flat})},
+             "sources": len(lineage), "orders": len({r["order_id"] for r in flat}),
+             "flat_cols": len(fields)},
     "cols": cols,
     "rows": rows,
     "targets": targets,
@@ -272,7 +302,11 @@ with open(os.path.join(WH, "dashboard_data.json"), "w", encoding="utf-8") as f:
 
 total_rev = sum(r["revenue_usd"] for r in flat)
 total_margin = sum(r["margin_usd"] for r in flat)
-print(f"Extracted 18 sources -> conformed -> flattened")
+n_reg = sum(1 for r in flat if r["registered_warranty"])
+print(f"Extracted {len(lineage)} sources -> conformed -> flattened")
+if warranty:
+    print(f"  warranty joins (gated)  : {n_reg} lines registered "
+          f"({100 * n_reg / len(flat):.1f}% attach) from the AI-mapped source")
 print(f"  region codes normalized : {_region_fixes} messy values fixed")
 print(f"  cancelled orders dropped: {skipped_cancelled} lines")
 print(f"  flat table              : {len(flat)} rows x {len(fields)} cols -> warehouse/flat_sales.csv")

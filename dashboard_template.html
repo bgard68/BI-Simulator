@@ -161,7 +161,7 @@
   .ctable td.n, .ctable th.n { text-align: right; font-variant-numeric: tabular-nums; }
 
   /* ops minis */
-  .minis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+  .minis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }
   .mini { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; }
   .mini .mv { font-size: 17px; font-weight: 650; }
   .mini .ml { color: var(--muted); font-size: 11px; }
@@ -206,7 +206,15 @@
   }
   @media (max-width: 620px) {
     .kpis { grid-template-columns: repeat(2, 1fr); }
+    .minis { grid-template-columns: repeat(2, 1fr); }
     .hint { display: none; }
+  }
+  .chip.gated { border-color: var(--s1); }
+  a.chip { text-decoration: none; color: inherit; }
+  a.chip:hover { background: var(--wash); }
+  .gbadge {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.06em; color: var(--s1);
+    border: 1px solid var(--s1); border-radius: 4px; padding: 2px 4px; flex: none;
   }
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; }
@@ -223,7 +231,7 @@
       </svg>
       <div>
         <h1>Cobalt Revenue Ops</h1>
-        <div class="sub" id="subline">Cobalt Outfitters &middot; 18 source systems flattened into one order-line table</div>
+        <div class="sub" id="subline">Cobalt Outfitters &middot; 19 sources in one order-line table &mdash; 18 integrated by code, 1 by a gated AI mapping</div>
       </div>
     </div>
     <div class="top-right">
@@ -333,7 +341,9 @@ const R = DATA.rows;
 const iD = IX.d, iRG = IX.rg, iCH = IX.ch, iSG = IX.sg, iCA = IX.ca,
       iPR = IX.pr, iCP = IX.cp, iQ = IX.q, iRV = IX.rv, iMG = IX.mg,
       iRT = IX.rt, iLT = IX.lt, iNP = IX.np, iTK = IX.tk, iO = IX.o,
-      iSH = IX.sh, iRR = IX.rr;
+      iSH = IX.sh, iRR = IX.rr, iWR = IX.wr;
+const HAS_MAPPING_PAGE = __HAS_MAPPING_PAGE__;
+const HAS_WARRANTY = R.some(r => r[iWR] !== null && r[iWR] !== undefined);
 const END = DATA.meta.span[1];
 const MONTHS_ALL = [...new Set(DATA.targets.map(t => t.m))].sort();
 
@@ -1007,6 +1017,9 @@ function renderOps() {
   mk(k.onTime === null ? "–" : fmtPct(k.onTime, 1), "On-time delivery");
   mk(k.tk100.toFixed(1), "Tickets per 100 orders");
   mk(conv === null ? "–" : fmtPct(conv, 2), "Session → order conversion" + (scoped ? " (site-wide sessions)" : ""));
+  const wrLines = rows.filter(r => r[iWR] !== null && r[iWR] !== undefined).length;
+  mk(HAS_WARRANTY ? fmtPct(rows.length ? wrLines / rows.length : 0, 1) : "–",
+     "Warranty attach rate" + (HAS_WARRANTY ? " (AI-mapped source)" : " (mapping not run)"));
   host.appendChild(minis);
   const sub = document.createElement("p"); sub.className = "csub";
   sub.textContent = "Returned lines by reason";
@@ -1045,7 +1058,13 @@ function renderLineage() {
   const chips = document.getElementById("chips");
   chips.textContent = "";
   for (const l of DATA.lineage) {
-    const c = document.createElement("div"); c.className = "chip";
+    let c;
+    if (l.gated && HAS_MAPPING_PAGE) {
+      c = document.createElement("a"); c.href = "mapping.html";
+    } else {
+      c = document.createElement("div");
+    }
+    c.className = "chip" + (l.gated ? " gated" : "");
     const f = document.createElement("span"); f.className = "fmt"; f.textContent = l.format;
     const cn = document.createElement("div"); cn.className = "cn";
     const sys = document.createElement("div"); sys.className = "sys"; sys.textContent = l.system;
@@ -1053,12 +1072,17 @@ function renderLineage() {
     cn.appendChild(sys); cn.appendChild(fl);
     const rw = document.createElement("span"); rw.className = "rw";
     rw.textContent = String(l.rows).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    c.title = l.role;
-    c.appendChild(f); c.appendChild(cn); c.appendChild(rw);
+    c.title = l.role + (l.gated && HAS_MAPPING_PAGE ? " — click for the evidence" : "");
+    c.appendChild(f); c.appendChild(cn);
+    if (l.gated) {
+      const g = document.createElement("span"); g.className = "gbadge";
+      g.textContent = "AI-MAPPED"; c.appendChild(g);
+    }
+    c.appendChild(rw);
     chips.appendChild(c);
   }
   document.getElementById("flowline").textContent =
-    `${DATA.lineage.length} sources → conform → join on order line → ${fmtInt(R.length)} rows × ${DATA.cols.length}+ cols`;
+    `${DATA.lineage.length} sources → conform → join on order line → ${fmtInt(R.length)} rows × ${DATA.meta.flat_cols || DATA.cols.length} cols`;
   document.getElementById("asof").innerHTML = "";
   const a1 = document.createElement("div");
   a1.innerHTML = "";

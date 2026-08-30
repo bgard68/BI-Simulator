@@ -85,7 +85,13 @@ nothing lands. The gates are themselves negative-case tested
 (`tests/test_gates.py`): sixteen cases corrupt the accepted proposal one
 defect at a time and assert the specific gate that must reject each. CI
 never calls a model: it replays the recorded, accepted proposal and runs the
-full suite on every push. Full write-up: [AGENTIC_MAPPING.md](AGENTIC_MAPPING.md).
+full suite on every push. The accepted output then feeds `etl.py` as
+**optional input** — the 19th source joins the flat table (and the dashboard
+gains its AI-MAPPED lineage chip and warranty attach rate) only when the
+gates said yes; without it the pipeline still builds. Variant mode
+(`--seed N`) fabricates unknown sources with freshly drawn conventions for
+live demos, and `mapper/benchmark.py` measures acceptance rates across many
+of them. Full write-up: [AGENTIC_MAPPING.md](AGENTIC_MAPPING.md).
 
 ## What makes it deterministic
 

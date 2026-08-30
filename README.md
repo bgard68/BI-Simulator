@@ -30,12 +30,18 @@ taught (`incoming/warranty_registrations.txt` — pipe-delimited, day-first
 dotted dates, prefixed SKUs, alien region codes, plus a prompt-injection
 canary) is integrated by an LLM that proposes the schema mapping from a
 closed transform vocabulary; eleven deterministic gates measure the proposal
-against the full file, and only a proposal that passes them all lands. CI
-replays the recorded, accepted run on every push — model inference on
-demand, governance always and for free. The recorded proposal cleared every
-gate on attempt 1, and the gates themselves are covered by a negative-case
-test suite that feeds them deliberately corrupted proposals and asserts each
-is rejected by the right gate. Details:
+against the full file — including cross-checking its semantic guesses
+against CRM ground truth — and only a proposal that passes them all lands.
+When it does, the source genuinely joins the model: the dashboard's lineage
+grows to 19 with an AI-MAPPED badge, and a warranty attach rate appears,
+computed from the gated data. CI replays the recorded, accepted run on every
+push — model inference on demand, governance always and for free. The gates
+are covered by a negative-case test suite (corrupted proposals must each be
+rejected by the right gate), and **variant mode** makes the demo
+audience-proof: `generate_unknown_source.py --seed <any number>` fabricates
+a file with conventions nobody has seen — different delimiter, date format,
+headers, codes, column order — and `mapper/benchmark.py` measures acceptance
+rates across many of them. Details:
 [docs/AGENTIC_MAPPING.md](docs/AGENTIC_MAPPING.md).
 
 ![How the 18 sources flatten into one table](flatten_map.svg)
@@ -58,9 +64,11 @@ is rejected by the right gate. Details:
 ## Run it
 
 ```
-python generate_sources.py   # writes sources/  (18 files)
-python etl.py                # writes warehouse/ (flat_sales.csv + dashboard_data.json)
-python build_dashboard.py    # writes output/dashboard.html (open in a browser)
+python generate_sources.py         # writes sources/  (18 files)
+python generate_unknown_source.py  # writes incoming/ (the 19th, unknown file)
+python mapper/validate_mapping.py  # replays the gated mapping -> warehouse/warranty_conformed.csv
+python etl.py                      # flattens everything -> warehouse/flat_sales.csv
+python build_dashboard.py          # writes output/dashboard.html (open in a browser)
 ```
 
 Pure standard library — no pip installs, no dependencies at all. Deterministic
@@ -113,7 +121,7 @@ bad habits (the ETL has to earn the joins):
 4. **Derive** — measures needing several sources at once: `revenue_usd`
    (qty × price × (1−discount) × FX) and `margin_usd` (revenue − supplier cost).
 
-Result: `warehouse/flat_sales.csv`, ~7,700 rows × 43 columns — one row per
+Result: `warehouse/flat_sales.csv`, ~7,700 rows × 45 columns — one row per
 order line, carrying everything from campaign attribution to carrier lateness
 to the customer's latest NPS. Questions like "return rate on late deliveries"
 become a filter instead of a five-way join.

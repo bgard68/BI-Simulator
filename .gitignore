@@ -2,3 +2,5 @@ __pycache__/
 sources/
 warehouse/
 output/
+mapper/runs/
+incoming/variant_*.txt

@@ -26,8 +26,10 @@ page = template.replace("__DATA_JSON__", payload, 1)
 MAP_LINK = '<a class="maplink" href="mapping.html">Agentic mapping evidence &rarr;</a>'
 artifact_path = os.path.join(OUT, "artifact.html")
 with open(artifact_path, "w", encoding="utf-8") as f:
-    f.write(page.replace("__MAPPING_LINK__", "", 1))
-page = page.replace("__MAPPING_LINK__", MAP_LINK, 1)
+    f.write(page.replace("__MAPPING_LINK__", "", 1)
+                .replace("__HAS_MAPPING_PAGE__", "false", 1))
+page = (page.replace("__MAPPING_LINK__", MAP_LINK, 1)
+            .replace("__HAS_MAPPING_PAGE__", "true", 1))
 
 m = re.match(r"\s*<title>(.*?)</title>\s*", page, re.S)
 title = m.group(1) if m else "Dashboard"

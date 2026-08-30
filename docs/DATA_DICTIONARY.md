@@ -181,7 +181,21 @@ costs (42–62% of list price) feed `unit_cost_usd` → `cost_usd` →
 
 ---
 
-# The output: `warehouse/flat_sales.csv` — 7,670 rows × 43 columns
+## 19. `incoming/warranty_registrations.txt` — Warranty portal · TXT · 1,100 rows **[flattened via gated AI mapping]**
+
+The unknown source: pipe-delimited, `DD.MM.YYYY` dates, `SKU-` prefixed
+products, alien channel/region codes, and a prompt-injection canary. Its
+columns are documented by the mapping itself — see the
+[recorded proposal](../mapper/recorded/proposal.json) and
+[AGENTIC_MAPPING.md](AGENTIC_MAPPING.md). It reaches the flat table only
+through `warehouse/warranty_conformed.csv`, which exists only when a model's
+proposed mapping passes all eleven deterministic gates. Feeds
+`registered_warranty`, `warranty_years` (aggregate-first per
+customer + product + purchase date).
+
+---
+
+# The output: `warehouse/flat_sales.csv` — 7,670 rows × 45 columns
 
 One row per order line (cancelled orders dropped). Columns by origin:
 
@@ -204,6 +218,7 @@ One row per order line (cancelled orders dropped). Columns by origin:
 | tickets_on_order | aggregate | Helpdesk (count per order) |
 | customer_nps | aggregate | Surveys (latest per customer) |
 | stock_on_hand | aggregate snapshot | WMS (sum per product) |
+| registered_warranty, warranty_years | aggregate | Warranty portal — via the gated AI mapping |
 
 **Reading caveats** (inherent to flat tables): `tickets_on_order` and
 `customer_nps` repeat on every line of an order — dedupe by `order_id`
