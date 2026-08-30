@@ -11,6 +11,17 @@ retailer ("Cobalt Outfitters"): fabricate 18 source systems the way each would
 actually export data, flatten them with a pure-stdlib ETL, and generate a
 single-file dashboard with cross-filtering, KPIs, and data lineage.
 
+**What this actually demonstrates: agentic data integration.** Bringing
+heterogeneous data sources together — different formats, date conventions,
+codes, and grains — is one of the most common problems companies want AI to
+solve. This entire pipeline (the simulated sources, the conform/join/flatten
+ETL, the dashboard, the CI) was built end-to-end by an AI agent working under
+human direction, in a single session. And it was built the way that work has
+to be built to be trusted: reviewable dependency-free code, deterministic by
+seed, rebuilt from scratch by CI on every push so the deployed result is
+provably the product of the committed code — nothing hand-tweaked, nothing
+drifting.
+
 ![How the 18 sources flatten into one table](flatten_map.svg)
 
 ## Documentation
