@@ -7,6 +7,7 @@ import csv
 import json
 import os
 import re
+import sqlite3
 from datetime import date, datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -48,6 +49,16 @@ _TRANSFORM_RE = re.compile(r"^(strip|lower|upper|int|value_map|strip_prefix:.+|d
 
 class TransformError(Exception):
     pass
+
+
+def split_row(line, delim):
+    """Split one delimited line, honouring RFC4180-style double quotes.
+
+    A naive line.split(delim) mis-splits real exports whose fields contain
+    the delimiter inside quotes ("Ortiz, Reyes & Co"). csv.reader handles
+    quoting, doubled quotes, and unquoted fields identically otherwise.
+    """
+    return next(csv.reader([line], delimiter=delim, skipinitialspace=False))
 
 
 def apply_transforms(value, transforms, target, value_maps):
@@ -116,15 +127,26 @@ REGION_NAMES = {"NA": "North America", "EMEA": "EMEA", "APAC": "APAC", "LATAM": 
 
 
 def load_lookups():
-    emails, email_region = set(), {}
+    emails, email_region, email_cid = set(), {}, {}
     with open(os.path.join(SRC, "crm_customers.csv"), newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             e = r["email"].strip().lower()
             emails.add(e)
             email_region[e] = REGION_NAMES[r["region"].strip().upper()]
+            email_cid[e] = r["customer_id"]
     with open(os.path.join(SRC, "product_catalog.json"), encoding="utf-8") as f:
         products = {p["product_id"] for p in json.load(f)}
-    return emails, products, email_region
+    # ERP ground truth for channel (and, implicitly, date) cross-checks:
+    # every (customer, product, order date) -> the channels it was bought on
+    order_channels = {}
+    con = sqlite3.connect(os.path.join(SRC, "erp_sales.db"))
+    for cid, pid, od, ch in con.execute(
+            "SELECT o.customer_id, i.product_id, o.order_date, o.channel "
+            "FROM order_items i JOIN orders o ON o.order_id = i.order_id "
+            "WHERE o.status != 'cancelled'"):
+        order_channels.setdefault((cid, pid, od), set()).add(ch)
+    con.close()
+    return emails, products, email_region, email_cid, order_channels
 
 
 def apply_and_gate(proposal, source_path):
@@ -135,14 +157,14 @@ def apply_and_gate(proposal, source_path):
     when every gate passed).
     """
     gates = []
-    emails, products, email_region = load_lookups()
+    emails, products, email_region, email_cid, order_channels = load_lookups()
     vm = proposal.get("value_maps", {})
     delim = proposal["delimiter"]
     colmap = {c["source"]: c for c in proposal["columns"]}
 
     with open(source_path, encoding="utf-8") as f:
         lines = [ln.rstrip("\n") for ln in f if ln.strip()]
-    header = lines[0].split(delim) if proposal.get("has_header", True) else None
+    header = split_row(lines[0], delim) if proposal.get("has_header", True) else None
     body = lines[1:] if header else lines
 
     missing = [s for s in colmap if header is not None and s not in header]
@@ -152,13 +174,13 @@ def apply_and_gate(proposal, source_path):
         return gates, []
 
     n_fields = len(header)
-    bad_split = sum(1 for ln in body if len(ln.split(delim)) != n_fields)
+    bad_split = sum(1 for ln in body if len(split_row(ln, delim)) != n_fields)
     gates.append(("E1 every row splits into the header's column count",
                   bad_split == 0, f"{bad_split} of {len(body)} rows malformed"))
 
     conformed, transform_errors = [], []
     for i, ln in enumerate(body):
-        parts = ln.split(delim)
+        parts = split_row(ln, delim)
         if len(parts) != n_fields:
             continue
         row = {}
@@ -205,7 +227,25 @@ def apply_and_gate(proposal, source_path):
 
     bad_ch = {r.get("channel") for r in conformed} - set(CANONICAL_CHANNELS)
     bad_rg = {r.get("region") for r in conformed} - set(CANONICAL_REGIONS)
-    gates.append(("E7 channels 100% canonical", not bad_ch, f"offenders: {sorted(map(str, bad_ch))[:5]}" if bad_ch else "all canonical"))
+    # Same ground-truth principle as E8: canonical membership alone would let
+    # a swapped-but-legal channel map (B2B -> Marketplace) through. The ERP
+    # knows which channel each purchase actually used.
+    ch_checked = ch_agree = 0
+    for r in conformed:
+        cid = email_cid.get(r.get("customer_email"))
+        key = (cid, r.get("product_id"), r.get("purchase_date"))
+        truth = order_channels.get(key)
+        if cid and truth:
+            ch_checked += 1
+            if r.get("channel") in truth:
+                ch_agree += 1
+    ch_rate = ch_agree / ch_checked if ch_checked else 0
+    ok_ch = not bad_ch and ch_rate >= 0.95
+    detail_ch = (f"offenders: {sorted(map(str, bad_ch))[:5]}" if bad_ch
+                 else f"all canonical; {ch_agree}/{ch_checked} = {ch_rate:.1%} "
+                      f"agree with the ERP channel for that purchase")
+    gates.append(("E7 channels 100% canonical and >=95% agree with ERP",
+                  ok_ch, detail_ch))
     # canonical alone is not enough: a wrong-but-canonical mapping (EAST ->
     # EMEA) would pass a membership check. The CRM is ground truth for joined
     # customers, so the mapped region must also AGREE with it.

@@ -19,8 +19,17 @@ import mapping_lib as lib
 
 SOURCE = os.path.join(ROOT, "incoming", "warranty_registrations.txt")
 RECORDED = os.path.join(ROOT, "mapper", "recorded", "proposal.json")
+BENCH = os.path.join(ROOT, "mapper", "recorded", "benchmark.json")
 OUT = os.path.join(ROOT, "output", "mapping.html")
 REPO = "https://github.com/bgard68/bi-simulator"
+
+MODE_LABEL = {
+    "standard": "unseen conventions",
+    "noisy": "decoy columns present",
+    "quoted": "delimiter inside quoted fields",
+    "hostile_headers": "hostile column names",
+    "unmappable": "contract cannot be satisfied — must be refused",
+}
 
 E = html.escape
 
@@ -75,6 +84,43 @@ for name, ok, detail in gates:
 
 verdict = ('<span class="pill pass big">ACCEPTED</span>' if all_ok
            else '<span class="pill fail big">REJECTED</span>')
+
+# --- optional benchmark section (published only if a run was recorded) ----
+bench_html = ""
+if os.path.exists(BENCH):
+    with open(BENCH, encoding="utf-8") as f:
+        b = json.load(f)
+    rows = ""
+    for mode, v in sorted(b.get("by_mode", {}).items()):
+        pill = ('<span class="pill pass">%d/%d</span>' % (v["correct"], v["n"])
+                if v["correct"] == v["n"] else
+                '<span class="pill fail">%d/%d</span>' % (v["correct"], v["n"]))
+        rows += (f'<tr><td class="mono">{E(mode)}</td>'
+                 f'<td>{E(MODE_LABEL.get(mode, ""))}</td><td>{pill}</td></tr>')
+    n = b.get("variants", 0)
+    correct = b.get("correct_outcomes", 0)
+    stats = [
+        (f'{correct}/{n}', 'correct outcomes'),
+        (f'{b.get("accepted", 0)}/{b.get("mappable", 0)}', 'mappable files accepted'),
+        (f'{b.get("accepted_first_attempt", 0)}', 'accepted on attempt 1'),
+        (f'{b.get("correctly_rejected", 0)}/{b.get("unmappable", 0)}', 'unmappable files refused'),
+    ]
+    tiles = "".join(f'<div class="bstat"><div class="bv">{E(v)}</div>'
+                    f'<div class="bl">{E(l)}</div></div>' for v, l in stats)
+    bench_html = f"""
+  <section class="card">
+    <h2>4 &mdash; Measured across {n} unseen files</h2>
+    <p class="csub">Each variant seed draws its own delimiter, date format, header
+    vocabulary, prefix, code sets and column order &mdash; then the model faces it
+    cold. Some are deliberately <b>unmappable</b>: the only correct outcome is
+    refusal. Run with <span class="mono">mapper/benchmark.py</span> on
+    {E(str(b.get("backend", "?")))} &middot; {E(str(b.get("created_utc", "")))}</p>
+    <div class="bstats">{tiles}</div>
+    <table>
+      <tr><th>Variant class</th><th>What it tests</th><th>Correct outcomes</th></tr>
+      {rows}
+    </table>
+  </section>"""
 
 page = f"""<!doctype html>
 <html lang="en">
@@ -149,6 +195,9 @@ page = f"""<!doctype html>
   .pair {{ display:flex; gap:4px; font-size:12.5px; padding:1px 0; }}
   .meta {{ display:flex; gap:18px; flex-wrap:wrap; color:var(--ink2); font-size:12.5px; }}
   .meta b {{ color: var(--ink); font-weight:600; }}
+  .bstats {{ display:flex; gap:26px; flex-wrap:wrap; margin:12px 0 14px; }}
+  .bv {{ font-size:22px; font-weight:650; letter-spacing:-0.01em; }}
+  .bl {{ color:var(--muted); font-size:12px; }}
   details {{ margin-top: 10px; }}
   summary {{ cursor: pointer; color: var(--s1); font-size: 13px; }}
   footer {{ margin-top:22px; color:var(--muted); font-size:12px; }}
@@ -210,6 +259,8 @@ page = f"""<!doctype html>
       {gate_rows}
     </table>
   </section>
+
+{bench_html}
 
   <section class="card">
     <h2>Run it yourself</h2>

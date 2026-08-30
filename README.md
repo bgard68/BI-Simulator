@@ -31,7 +31,8 @@ dotted dates, prefixed SKUs, alien region codes, plus a prompt-injection
 canary) is integrated by an LLM that proposes the schema mapping from a
 closed transform vocabulary; eleven deterministic gates measure the proposal
 against the full file — including cross-checking its semantic guesses
-against CRM ground truth — and only a proposal that passes them all lands.
+against ERP and CRM ground truth, so a wrong-but-canonical mapping can't
+slip through — and only a proposal that passes them all lands.
 When it does, the source genuinely joins the model: the dashboard's lineage
 grows to 19 with an AI-MAPPED badge, and a warranty attach rate appears,
 computed from the gated data. CI replays the recorded, accepted run on every
@@ -40,8 +41,11 @@ are covered by a negative-case test suite (corrupted proposals must each be
 rejected by the right gate), and **variant mode** makes the demo
 audience-proof: `generate_unknown_source.py --seed <any number>` fabricates
 a file with conventions nobody has seen — different delimiter, date format,
-headers, codes, column order — and `mapper/benchmark.py` measures acceptance
-rates across many of them. Details:
+headers, codes, column order — including classes with decoy columns, quoted
+delimiters, hostile column names, and files that are deliberately
+**unmappable**, where the only correct outcome is refusal.
+`mapper/benchmark.py` scores the whole set cold and publishes the numbers to
+the evidence page. Details:
 [docs/AGENTIC_MAPPING.md](docs/AGENTIC_MAPPING.md).
 
 ![How the 18 sources flatten into one table](flatten_map.svg)

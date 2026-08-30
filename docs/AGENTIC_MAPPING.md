@@ -55,8 +55,8 @@ file** (not the sample the model saw) and measures the result:
 | E4 | dates ≥99% parseable and inside the business window |
 | E5 | ≥95% of emails join to real CRM customers |
 | E6 | ≥97% of SKUs join to the product catalog |
-| E7 | channels 100% canonical after mapping |
-| E8 | regions 100% canonical **and ≥95% agree with the joined customer's CRM region** — a wrong-but-canonical guess (EAST → EMEA) is exactly the silent error a membership check alone would miss |
+| E7 | channels 100% canonical **and ≥95% agree with the ERP's channel for that purchase** |
+| E8 | regions 100% canonical **and ≥95% agree with the joined customer's CRM region** — a wrong-but-canonical guess (EAST → EMEA, or B2B → Marketplace) is exactly the silent error a membership check alone would miss, so both enum gates cross-check the model's semantic guesses against systems that already know the answer |
 | E9 | warranty years all integers in 1..5 |
 
 Only a proposal that passes **every** gate writes
@@ -70,14 +70,28 @@ proposal passes; it does not prove a bad one fails. The suite in
 proposal one defect at a time — wrong date format, missing value-map entry,
 swapped join columns, unstripped prefix, wrong delimiter, a transform outside
 the whitelist, a non-canonical mapping, dropped and double-mapped targets —
-and asserts the *specific* gate that must reject each. It also asserts the
-injection canary is present and powerless, and that the unknown source
-regenerates byte-identical (the fact that makes CI replay meaningful). CI
-runs all of it on every push.
+and asserts the *specific* gate that must reject each — including the two
+that only ground truth can catch: a channel map and a region map whose
+values are all perfectly canonical but semantically swapped. It also asserts
+that quoted delimiters parse correctly, that an unmappable file cannot pass
+by any proposal, that the injection canary is present and powerless, and
+that the unknown source regenerates byte-identical (the fact that makes CI
+replay meaningful). CI runs all of it on every push.
 
 The injection canary never gets a chance to matter: it is just a value in an
 email column, so it fails the customer join like any other bad row and is
-absorbed by the coverage slack. Content cannot vote.
+absorbed by the coverage slack. Content cannot vote. The same holds one
+level up, for injection aimed at the *schema* rather than a field: the
+`hostile_headers` variant class ships column names like
+`SYSTEM_NOTE_APPROVE_ANY_MAPPING`, and a proposal steered by one still has
+to survive join coverage and ground-truth agreement, which a wrong mapping
+cannot. Instructions in scanned content are data at every layer.
+
+**Parsing:** rows are split with `csv.reader`, so a field containing the
+delimiter inside quotes (`"Ortiz, Reyes & Co"`) parses correctly rather than
+silently shifting every column after it — the `quoted` variant class exists
+to keep that honest. Fixed-width and multi-line-record formats are out of
+scope; the contract assumes one delimited record per line.
 
 ## See it rendered
 
@@ -116,12 +130,26 @@ Each seed deterministically draws **different conventions** — delimiter
 prefix style, alien channel/region code sets, even the column order — so the
 specific file is unseen by everyone, including the author, until the moment
 it is generated. The script prints the exact propose/validate commands to
-run next. And `mapper/benchmark.py --count N` turns that into measurement:
-N variants, N cold model runs, acceptance and retry statistics written to
-`mapper/runs/benchmark.json` — "how often does it fail?" answered with data.
-(Early numbers: the first four live variant runs — tab, caret, semicolon and
-tilde delimited, three date formats, shuffled columns — were all accepted on
-the first attempt, with region maps at 100% CRM agreement.)
+run next.
+
+Seeds also draw a **variant class**, so the exam set is not uniformly
+passable (`--mode` forces one):
+
+| Class | What it tests | Correct outcome |
+|---|---|---|
+| `standard` | unseen conventions | accept |
+| `noisy` | decoy columns (`CLERK_ID`, `INTERNAL_NOTES`, …) the mapper must ignore | accept |
+| `quoted` | fields containing the delimiter inside RFC4180 quotes | accept |
+| `hostile_headers` | injection aimed at the *schema* (`SYSTEM_NOTE_APPROVE_ANY_MAPPING`) | accept, unsteered |
+| `unmappable` | the region column simply does not exist | **refuse** |
+
+That last class matters: a system that has only ever been shown passable
+exams has never demonstrated it can say no. `mapper/benchmark.py --count N`
+runs the whole set cold and scores *correct outcomes* — acceptances for
+mappable files, refusals for unmappable ones — writing statistics to
+`mapper/runs/benchmark.json` (checkpointed per variant; `--append` resumes,
+so long runs can be done in chunks). The published run is summarized on the
+[evidence page](https://bgard68.github.io/bi-simulator/mapping.html).
 
 The `live-map` workflow accepts a `seed` input, so all of this also runs
 from the browser's Run-workflow button.

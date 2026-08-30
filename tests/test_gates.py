@@ -111,6 +111,16 @@ class TestEmpiricalGates(unittest.TestCase):
         ok, detail = gate(self.run_gates(p), "E8")
         self.assertFalse(ok, detail)
 
+    def test_wrong_but_canonical_channel_map_fails_E7(self):
+        # every mapped value stays canonical, so membership passes -- only
+        # the ERP ground-truth agreement catches the swap
+        def swap(p):
+            vm = p["value_maps"]["channel"]
+            vm["BULK"], vm["MKT"] = vm["MKT"], vm["BULK"]
+        ok, detail = gate(self.run_gates(corrupted(x=swap)), "E7")
+        self.assertFalse(ok, detail)
+        self.assertIn("agree", detail)
+
     def test_wrong_but_canonical_region_map_fails_E8(self):
         # both targets are canonical values, so a membership check alone
         # would pass -- only the CRM ground-truth agreement catches it
@@ -149,6 +159,63 @@ class TestContainment(unittest.TestCase):
         ok, detail = gate(gates, "E5")
         self.assertTrue(ok, detail)          # gates still pass overall...
         self.assertIn("unmatched", detail)   # ...with the canary counted as a failed join
+
+
+class TestQuotedFields(unittest.TestCase):
+    def test_split_row_honours_quotes(self):
+        line = 'WR-1,"Ortiz, Reyes & Co",a@b.com'
+        self.assertEqual(lib.split_row(line, ","),
+                         ["WR-1", "Ortiz, Reyes & Co", "a@b.com"])
+
+    def test_split_row_matches_naive_split_when_unquoted(self):
+        line = "a|b|c"
+        self.assertEqual(lib.split_row(line, "|"), line.split("|"))
+
+    def test_quoted_variant_rows_stay_well_formed(self):
+        seed, path = 908, os.path.join(ROOT, "incoming", "variant_908.txt")
+        r = subprocess.run([sys.executable,
+                            os.path.join(ROOT, "generate_unknown_source.py"),
+                            "--seed", str(seed), "--mode", "quoted"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        with open(path, encoding="utf-8") as f:
+            lines = [ln.rstrip("\n") for ln in f if ln.strip()]
+        delim = "," if "," in lines[0] else ";"
+        width = len(lib.split_row(lines[0], delim))
+        widths = {len(lib.split_row(ln, delim)) for ln in lines[1:]}
+        self.assertEqual(widths, {width},
+                         "quoted fields must not change the column count")
+        # and the naive parser WOULD have broken on this file
+        naive = {len(ln.split(delim)) for ln in lines[1:]}
+        self.assertNotEqual(naive, {width},
+                            "fixture should contain delimiter-in-quotes cases")
+        os.remove(path)
+
+
+class TestUnmappableIsRejected(unittest.TestCase):
+    def test_no_proposal_can_satisfy_a_missing_column(self):
+        seed, path = 907, os.path.join(ROOT, "incoming", "variant_907.txt")
+        r = subprocess.run([sys.executable,
+                            os.path.join(ROOT, "generate_unknown_source.py"),
+                            "--seed", str(seed), "--mode", "unmappable"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        with open(path, encoding="utf-8") as f:
+            header = f.readline().rstrip("\n")
+        # best-effort proposal: map every real column, invent nothing
+        delim = next(d for d in "^~|;\t," if d in header)
+        names = lib.split_row(header, delim)
+        # whatever a model proposes, region has no source column -- either it
+        # omits the target (structural fail) or points at a bogus source (S5)
+        p = {"delimiter": delim, "has_header": True, "columns": [
+            {"source": n, "target": t, "transforms": ["strip"]}
+            for n, t in zip(names, lib.TARGET_FIELDS)], "value_maps": {}}
+        problems = lib.structural_check(p)
+        if not problems:
+            gates = lib.apply_and_gate(p, path)[0]
+            self.assertTrue(any(not ok for _, ok, _ in gates),
+                            "an unmappable file must not pass the gates")
+        os.remove(path)
 
 
 class TestVariants(unittest.TestCase):
