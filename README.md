@@ -13,6 +13,18 @@ single-file dashboard with cross-filtering, KPIs, and data lineage.
 
 ![How the 18 sources flatten into one table](flatten_map.svg)
 
+## Documentation
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — the three pipeline stages, what
+  each script does, how the dashboard works inside, CI/CD, and the design
+  decisions behind them.
+- **[docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md)** — every column of
+  all 18 source files, their deliberate quirks, and the 43-column flat
+  table they produce.
+- **[docs/STAR_SCHEMA.md](docs/STAR_SCHEMA.md)** — the dimensional model
+  hiding in the sources, the four join patterns (and the fan trap they
+  avoid), what flattening costs, and how to map it all to Power BI.
+
 ## Run it
 
 ```
