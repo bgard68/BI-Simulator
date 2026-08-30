@@ -1,0 +1,91 @@
+# BI Simulator — 18 sources → 1 flat table → dashboard
+
+[![build-and-deploy](https://github.com/bgard68/bi-simulator/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/bgard68/bi-simulator/actions/workflows/build-and-deploy.yml)
+[![codeql](https://github.com/bgard68/bi-simulator/actions/workflows/codeql.yml/badge.svg)](https://github.com/bgard68/bi-simulator/actions/workflows/codeql.yml)
+
+**Live demo: <https://bgard68.github.io/bi-simulator/>** — an interactive,
+Power BI-style dashboard rebuilt from scratch by CI on every push.
+
+A self-contained simulation of a real BI pipeline for a fictional outdoor-gear
+retailer ("Cobalt Outfitters"): fabricate 18 source systems the way each would
+actually export data, flatten them with a pure-stdlib ETL, and generate a
+single-file dashboard with cross-filtering, KPIs, and data lineage.
+
+![How the 18 sources flatten into one table](flatten_map.svg)
+
+## Run it
+
+```
+python generate_sources.py   # writes sources/  (18 files)
+python etl.py                # writes warehouse/ (flat_sales.csv + dashboard_data.json)
+python build_dashboard.py    # writes output/dashboard.html (open in a browser)
+```
+
+Pure standard library — no pip installs, no dependencies at all. Deterministic
+(seeded RNG), so every rebuild produces identical data. Generated files are not
+committed; CI reruns the whole pipeline and deploys the result to GitHub Pages.
+Prefer downloads? Grab [flat_sales.csv](https://bgard68.github.io/bi-simulator/flat_sales.csv)
+or the raw [sources.zip](https://bgard68.github.io/bi-simulator/sources.zip)
+from the live site.
+
+## The 18 sources
+
+Each file mimics a real system's export — its own format, date convention, and
+bad habits (the ETL has to earn the joins):
+
+| # | File | System | Format | Quirk the ETL conforms |
+|---|------|--------|--------|------------------------|
+| 1 | crm_customers.csv | CRM | CSV | m/d/Y dates, messy region casing |
+| 2 | erp_sales.db | ERP (orders + order_items) | SQLite | fact grain |
+| 3 | product_catalog.json | PIM | JSON | |
+| 4 | inventory_snapshot.csv | WMS | CSV | |
+| 5 | web_analytics.jsonl | Web analytics | JSONL | |
+| 6 | marketing_campaigns.csv | Marketing | CSV | |
+| 7 | ad_spend_daily.csv | Ad platforms | CSV | |
+| 8 | email_stats.json | Email platform | JSON | |
+| 9 | support_tickets.csv | Helpdesk | CSV | DD-Mon-YYYY dates |
+| 10 | nps_surveys.csv | Survey tool | CSV | |
+| 11 | shipping_tracking.csv | Carrier feeds | CSV | |
+| 12 | returns_rma.csv | Returns portal | CSV | |
+| 13 | payment_gateway.jsonl | Payments | JSONL | lowercase currency codes |
+| 14 | hr_sales_reps.csv | HRIS | CSV | |
+| 15 | store_locations.json | Store master | JSON | |
+| 16 | fx_rates.csv | Treasury | CSV | monthly currency → USD |
+| 17 | finance_targets.csv | Finance plan | CSV | |
+| 18 | supplier_pricelist.xml | Procurement | XML | unit costs for margin |
+
+## How the flattening works (etl.py)
+
+1. **Extract** — one small parser per source (csv / json / jsonl / sqlite3 / ElementTree).
+2. **Conform** — normalize region codes, parse each source's date format to ISO,
+   uppercase currencies. Skip this and the joins silently drop rows.
+3. **Join onto the grain** — everything hangs off the ERP's order-line table
+   (a star schema collapsed to one wide table), using four patterns:
+   - *Dimensions* (customer, product, store, rep, campaign): dict lookups by ID
+   - *Event facts* (shipping, payments, returns): one-to-one by order/line ID
+   - *Pre-aggregate* (tickets, NPS, inventory): GROUP BY first, then join —
+     so many-to-one sources never explode the row count
+   - *Reference* (FX by month+currency, supplier cost by product): key lookups
+4. **Derive** — measures needing several sources at once: `revenue_usd`
+   (qty × price × (1−discount) × FX) and `margin_usd` (revenue − supplier cost).
+
+Result: `warehouse/flat_sales.csv`, ~7,700 rows × 43 columns — one row per
+order line, carrying everything from campaign attribution to carrier lateness
+to the customer's latest NPS. Questions like "return rate on late deliveries"
+become a filter instead of a five-way join.
+
+Four sources (web analytics, ad spend, email, finance targets) describe months,
+not order lines, so they stay as small side tables feeding the dashboard's
+target line, marketing chart, and conversion stat.
+
+`build_dashboard.py` injects the data into `dashboard_template.html` — the
+output is one self-contained HTML file (no CDNs, no libraries): KPI tiles with
+deltas, revenue vs target, cross-filterable region/category/channel/segment
+visuals, marketing ROAS, service quality, per-chart table views, light/dark
+themes, and a lineage strip covering all 18 sources.
+
+## Using it with real Power BI
+
+Open Power BI Desktop → Get Data → Text/CSV → `warehouse/flat_sales.csv` and
+the model is ready for visuals as-is. Or point Power Query at `sources/` and
+recreate the joins there — this ETL mirrors what its M queries would do.

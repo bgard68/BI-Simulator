@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="860" viewBox="0 0 680 430" role="img" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+<title>How the 18 sources flatten into one table</title>
+<desc>The ERP order-line table is the grain. Five dimension sources join by entity id, three event sources join one-to-one, three sources are aggregated then joined, two are key lookups. Four sources stay as side tables. Everything lands in flat_sales.csv with 7,670 rows and 43 columns.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="680" height="430" fill="#ffffff"/>
+
+<rect x="240" y="40" width="200" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+<text x="340" y="63" text-anchor="middle" font-size="14" font-weight="500" fill="#3C3489">ERP order lines</text>
+<text x="340" y="82" text-anchor="middle" font-size="12" fill="#534AB7">one row per order item</text>
+
+<rect x="480" y="40" width="160" height="112" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="494" y="63" font-size="14" font-weight="500" fill="#444441">Side tables</text>
+<text x="494" y="82" font-size="12" fill="#5F5E5A">not joined per row</text>
+<text x="494" y="98" font-size="12" fill="#5F5E5A">web analytics</text>
+<text x="494" y="114" font-size="12" fill="#5F5E5A">ad spend + email</text>
+<text x="494" y="130" font-size="12" fill="#5F5E5A">finance targets</text>
+
+<rect x="40" y="180" width="136" height="130" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="108" y="205" text-anchor="middle" font-size="14" font-weight="500" fill="#085041">Dimensions</text>
+<text x="108" y="222" text-anchor="middle" font-size="12" fill="#0F6E56">join by entity id</text>
+<text x="54" y="244" font-size="12" fill="#0F6E56">CRM customers</text>
+<text x="54" y="260" font-size="12" fill="#0F6E56">product catalog</text>
+<text x="54" y="276" font-size="12" fill="#0F6E56">store master</text>
+<text x="54" y="292" font-size="12" fill="#0F6E56">sales reps (HR)</text>
+<text x="54" y="308" font-size="12" fill="#0F6E56">campaigns</text>
+
+<rect x="190" y="180" width="136" height="130" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="258" y="205" text-anchor="middle" font-size="14" font-weight="500" fill="#085041">Event facts</text>
+<text x="258" y="222" text-anchor="middle" font-size="12" fill="#0F6E56">one-to-one by id</text>
+<text x="204" y="244" font-size="12" fill="#0F6E56">shipping tracking</text>
+<text x="204" y="260" font-size="12" fill="#0F6E56">payment gateway</text>
+<text x="204" y="276" font-size="12" fill="#0F6E56">returns / RMA</text>
+
+<rect x="350" y="180" width="136" height="130" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="418" y="205" text-anchor="middle" font-size="14" font-weight="500" fill="#085041">Pre-aggregate</text>
+<text x="418" y="222" text-anchor="middle" font-size="12" fill="#0F6E56">group by, join</text>
+<text x="364" y="244" font-size="12" fill="#0F6E56">ticket counts</text>
+<text x="364" y="260" font-size="12" fill="#0F6E56">latest NPS score</text>
+<text x="364" y="276" font-size="12" fill="#0F6E56">stock on hand</text>
+
+<rect x="500" y="180" width="136" height="130" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+<text x="568" y="205" text-anchor="middle" font-size="14" font-weight="500" fill="#085041">Reference</text>
+<text x="568" y="222" text-anchor="middle" font-size="12" fill="#0F6E56">lookup by key</text>
+<text x="514" y="244" font-size="12" fill="#0F6E56">FX rates</text>
+<text x="514" y="260" font-size="12" fill="#0F6E56">supplier costs</text>
+
+<line x1="340" y1="96" x2="340" y2="334" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="108" y1="310" x2="108" y2="334" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="258" y1="310" x2="258" y2="334" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="418" y1="310" x2="418" y2="334" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="568" y1="310" x2="568" y2="334" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<rect x="70" y="340" width="520" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+<text x="330" y="363" text-anchor="middle" font-size="14" font-weight="500" fill="#3C3489">flat_sales.csv · 7,670 rows × 43 cols</text>
+<text x="330" y="382" text-anchor="middle" font-size="12" fill="#534AB7">one wide row per order line</text>
+</svg>

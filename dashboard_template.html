@@ -1,0 +1,1090 @@
+<title>Cobalt Revenue Ops</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --deemph: #d6d5cd;
+    --good: #006300;
+    --bad: #d03b3b;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --wash: rgba(11, 11, 11, 0.045);
+    --sel: color-mix(in srgb, var(--s1) 12%, transparent);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --deemph: #3c3c39;
+      --good: #0ca30c;
+      --bad: #e66767;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+      --wash: rgba(255, 255, 255, 0.06);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --deemph: #3c3c39;
+    --good: #0ca30c;
+    --bad: #e66767;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --wash: rgba(255, 255, 255, 0.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .app { max-width: 1240px; margin: 0 auto; padding: 20px 20px 40px; }
+
+  /* ---------- header ---------- */
+  .top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .brand { display: flex; gap: 12px; align-items: center; }
+  .mark { width: 34px; height: 34px; flex: none; }
+  h1 { font-size: 17px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--ink2); font-size: 12px; margin-top: 2px; }
+  .asof { color: var(--muted); font-size: 12px; text-align: right; }
+  .asof strong { color: var(--ink2); font-weight: 600; }
+
+  /* ---------- filter row ---------- */
+  .filters {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin: 16px 0 14px; position: sticky; top: 0; z-index: 5;
+    background: var(--page); padding: 8px 0;
+  }
+  .seg { display: flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; background: var(--surface); }
+  .seg button {
+    border: 0; background: none; padding: 6px 11px; font: inherit; font-size: 12px;
+    color: var(--ink2); cursor: pointer; border-right: 1px solid var(--border);
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button:hover { background: var(--wash); }
+  .seg button[aria-pressed="true"] { background: var(--sel); color: var(--ink); font-weight: 600; }
+  .filters select {
+    font: inherit; font-size: 12px; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; max-width: 170px;
+  }
+  .filters select.active { border-color: var(--s1); background: var(--sel); font-weight: 600; }
+  .filters .reset {
+    font: inherit; font-size: 12px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--ink2); border-radius: 7px; padding: 6px 11px; cursor: pointer;
+  }
+  .filters .reset:hover { background: var(--wash); }
+  .hint { color: var(--muted); font-size: 11.5px; margin-left: auto; }
+  button:focus-visible, select:focus-visible, .hit:focus-visible, .tbtn:focus-visible {
+    outline: 2px solid var(--s1); outline-offset: 1px;
+  }
+
+  /* ---------- KPI tiles ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+    padding: 11px 13px 10px; min-width: 0;
+  }
+  .tile .tl { color: var(--ink2); font-size: 11.5px; }
+  .tile .tv { font-size: 24px; font-weight: 650; letter-spacing: -0.01em; margin: 2px 0 1px; }
+  .tile .td { font-size: 11.5px; color: var(--muted); display: flex; gap: 5px; align-items: baseline; flex-wrap: wrap; }
+  .delta { font-weight: 650; }
+  .delta.up { color: var(--good); }
+  .delta.down { color: var(--bad); }
+  .tile svg { display: block; margin-top: 6px; }
+
+  /* ---------- cards grid ---------- */
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; margin-top: 12px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+    padding: 13px 15px 12px; min-width: 0; display: flex; flex-direction: column;
+  }
+  .span8 { grid-column: span 8; } .span6 { grid-column: span 6; } .span4 { grid-column: span 4; }
+  .chead { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .chead h2 { font-size: 13px; font-weight: 650; margin: 0; }
+  .csub { color: var(--muted); font-size: 11.5px; margin: 1px 0 0; }
+  .tbtn {
+    font: inherit; font-size: 11px; color: var(--ink2); background: none;
+    border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; flex: none;
+  }
+  .tbtn:hover { background: var(--wash); }
+  .tbtn[aria-pressed="true"] { background: var(--sel); color: var(--ink); border-color: var(--s1); }
+  .cbody { margin-top: 8px; flex: 1; min-height: 0; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 0 0 6px; }
+  .legend .li { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink2); }
+  .legend .sw { width: 10px; height: 10px; border-radius: 2.5px; flex: none; }
+  .legend .lk { width: 14px; height: 0; border-top: 2px solid; flex: none; }
+  .legend .lk.dash { border-top-style: dashed; }
+  .empty { color: var(--muted); font-size: 12px; padding: 28px 0; text-align: center; }
+
+  /* charts */
+  .viz svg { display: block; width: 100%; }
+  .viz text { font-family: inherit; }
+  .tick { font-size: 10.5px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .blabel { font-size: 11px; fill: var(--ink2); font-variant-numeric: tabular-nums; }
+  .dlabel { font-size: 11px; fill: var(--ink2); }
+  .hit { cursor: pointer; }
+  .hit.static { cursor: default; }
+  .bar { transition: filter .12s ease, opacity .12s ease; }
+
+  /* table view */
+  .ctable { overflow-x: auto; }
+  .ctable table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  .ctable th {
+    text-align: left; color: var(--ink2); font-weight: 600; font-size: 11px;
+    border-bottom: 1px solid var(--axis); padding: 5px 10px 5px 0;
+  }
+  .ctable td { border-bottom: 1px solid var(--grid); padding: 5px 10px 5px 0; }
+  .ctable td.n, .ctable th.n { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ops minis */
+  .minis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+  .mini { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; }
+  .mini .mv { font-size: 17px; font-weight: 650; }
+  .mini .ml { color: var(--muted); font-size: 11px; }
+
+  /* lineage */
+  .lineage { margin-top: 18px; }
+  .lhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .lhead h2 { font-size: 13px; font-weight: 650; margin: 0; }
+  .lhead .flow { color: var(--muted); font-size: 11.5px; }
+  .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 10px; }
+  .chip {
+    display: flex; align-items: center; gap: 8px; border: 1px solid var(--border);
+    background: var(--surface); border-radius: 7px; padding: 7px 9px; min-width: 0;
+  }
+  .fmt {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink2);
+    border: 1px solid var(--axis); border-radius: 4px; padding: 2px 4px; flex: none;
+  }
+  .chip .cn { min-width: 0; flex: 1; }
+  .chip .sys { font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip .fl { font-size: 10px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip .rw { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+
+  footer { margin-top: 22px; color: var(--muted); font-size: 11.5px; }
+  footer code { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; }
+
+  /* tooltip */
+  #tip {
+    position: fixed; z-index: 50; pointer-events: none; display: none;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); max-width: 260px;
+  }
+  #tip .tt { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  #tip .tr { display: flex; align-items: center; gap: 7px; font-size: 12px; padding: 1px 0; }
+  #tip .key { width: 12px; border-top: 2.5px solid; flex: none; }
+  #tip .lbl { color: var(--ink2); }
+  #tip .val { margin-left: auto; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; padding-left: 12px; }
+
+  @media (max-width: 1000px) {
+    .kpis { grid-template-columns: repeat(3, 1fr); }
+    .span8, .span6, .span4 { grid-column: span 12; }
+  }
+  @media (max-width: 620px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
+        <rect x="1" y="1" width="32" height="32" rx="8" fill="none" stroke="var(--s1)" stroke-width="2"/>
+        <path d="M9 22 L15 12 L19 18 L25 9" fill="none" stroke="var(--s1)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="25" cy="9" r="2.6" fill="var(--s1)"/>
+      </svg>
+      <div>
+        <h1>Cobalt Revenue Ops</h1>
+        <div class="sub" id="subline">Cobalt Outfitters &middot; 18 source systems flattened into one order-line table</div>
+      </div>
+    </div>
+    <div class="asof" id="asof"></div>
+  </header>
+
+  <div class="filters" id="filters">
+    <div class="seg" id="presets" role="group" aria-label="Date range">
+      <button data-p="all" aria-pressed="true">All time</button>
+      <button data-p="ytd" aria-pressed="false">YTD</button>
+      <button data-p="6m" aria-pressed="false">6 mo</button>
+      <button data-p="90d" aria-pressed="false">90 days</button>
+    </div>
+    <select id="f-rg" aria-label="Region"></select>
+    <select id="f-ch" aria-label="Channel"></select>
+    <select id="f-ca" aria-label="Category"></select>
+    <select id="f-sg" aria-label="Segment"></select>
+    <button class="reset" id="reset">Reset</button>
+    <span class="hint">Click any bar or segment to cross-filter, like a Power BI report</span>
+  </div>
+
+  <section class="kpis" id="kpis" aria-label="Key metrics"></section>
+
+  <section class="grid">
+    <article class="card span8" data-card="trend">
+      <div class="chead">
+        <div><h2>Revenue vs target</h2><p class="csub">Monthly USD &middot; target is the finance plan, region-scoped</p></div>
+        <button class="tbtn" aria-pressed="false">Table</button>
+      </div>
+      <div class="cbody"><div class="viz"></div><div class="ctable" hidden></div></div>
+    </article>
+
+    <article class="card span4" data-card="mix">
+      <div class="chead">
+        <div><h2>Channel &amp; segment mix</h2><p class="csub">Share of revenue</p></div>
+        <button class="tbtn" aria-pressed="false">Table</button>
+      </div>
+      <div class="cbody"><div class="viz"></div><div class="ctable" hidden></div></div>
+    </article>
+
+    <article class="card span4" data-card="region">
+      <div class="chead">
+        <div><h2>Revenue by region</h2><p class="csub">Customer region, USD</p></div>
+        <button class="tbtn" aria-pressed="false">Table</button>
+      </div>
+      <div class="cbody"><div class="viz"></div><div class="ctable" hidden></div></div>
+    </article>
+
+    <article class="card span4" data-card="category">
+      <div class="chead">
+        <div><h2>Revenue by category</h2><p class="csub">Product category, USD</p></div>
+        <button class="tbtn" aria-pressed="false">Table</button>
+      </div>
+      <div class="cbody"><div class="viz"></div><div class="ctable" hidden></div></div>
+    </article>
+
+    <article class="card span4" data-card="products">
+      <div class="chead">
+        <div><h2>Top products</h2><p class="csub">By revenue in the current slice</p></div>
+        <button class="tbtn" aria-pressed="false">Table</button>
+      </div>
+      <div class="cbody"><div class="viz"></div><div class="ctable" hidden></div></div>
+    </article>
+
+    <article class="card span6" data-card="marketing">
+      <div class="chead">
+        <div><h2>Marketing spend vs attributed revenue</h2><p class="csub">Monthly USD &middot; spend is company-wide, revenue is campaign-tagged orders</p></div>
+        <button class="tbtn" aria-pressed="false">Table</button>
+      </div>
+      <div class="cbody"><div class="viz"></div><div class="ctable" hidden></div></div>
+    </article>
+
+    <article class="card span6" data-card="ops">
+      <div class="chead">
+        <div><h2>Service quality</h2><p class="csub">Fulfilment, support and returns in the current slice</p></div>
+        <button class="tbtn" aria-pressed="false">Table</button>
+      </div>
+      <div class="cbody"><div class="viz"></div><div class="ctable" hidden></div></div>
+    </article>
+  </section>
+
+  <section class="lineage" aria-label="Data lineage">
+    <div class="lhead">
+      <h2>Data lineage</h2>
+      <span class="flow" id="flowline"></span>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <footer>
+    Simulated dataset for demonstration &middot; rebuild with
+    <code>python generate_sources.py &amp;&amp; python etl.py &amp;&amp; python build_dashboard.py</code>
+  </footer>
+</div>
+
+<div id="tip" role="status"></div>
+
+<script>
+"use strict";
+const DATA = __DATA_JSON__;
+
+/* ---------------- data access ---------------- */
+const IX = Object.fromEntries(DATA.cols.map((c, i) => [c, i]));
+const R = DATA.rows;
+const iD = IX.d, iRG = IX.rg, iCH = IX.ch, iSG = IX.sg, iCA = IX.ca,
+      iPR = IX.pr, iCP = IX.cp, iQ = IX.q, iRV = IX.rv, iMG = IX.mg,
+      iRT = IX.rt, iLT = IX.lt, iNP = IX.np, iTK = IX.tk, iO = IX.o,
+      iSH = IX.sh, iRR = IX.rr;
+const END = DATA.meta.span[1];
+const MONTHS_ALL = [...new Set(DATA.targets.map(t => t.m))].sort();
+
+const state = { preset: "all", rg: null, ch: null, ca: null, sg: null };
+const DIMS = [["rg", iRG], ["ch", iCH], ["ca", iCA], ["sg", iSG]];
+
+function rangeMin() {
+  const [y, m] = END.split("-").map(Number);
+  if (state.preset === "ytd") return `${END.slice(0, 4)}-01-01`;
+  if (state.preset === "6m") {
+    const mm = m - 5, yy = mm < 1 ? y - 1 : y, m2 = mm < 1 ? mm + 12 : mm;
+    return `${yy}-${String(m2).padStart(2, "0")}-01`;
+  }
+  if (state.preset === "90d") {
+    const dt = new Date(END + "T00:00:00Z");
+    dt.setUTCDate(dt.getUTCDate() - 89);
+    return dt.toISOString().slice(0, 10);
+  }
+  return null;
+}
+function prevRange() {
+  const min = rangeMin();
+  if (!min) return null;
+  const a = new Date(min + "T00:00:00Z"), b = new Date(END + "T00:00:00Z");
+  const len = Math.round((b - a) / 86400000) + 1;
+  const pb = new Date(a); pb.setUTCDate(pb.getUTCDate() - 1);
+  const pa = new Date(pb); pa.setUTCDate(pa.getUTCDate() - len + 1);
+  return [pa.toISOString().slice(0, 10), pb.toISOString().slice(0, 10)];
+}
+function rowsFor(opts = {}) {
+  const ignore = opts.ignore || null;
+  const min = opts.range ? opts.range[0] : rangeMin();
+  const max = opts.range ? opts.range[1] : END;
+  const out = [];
+  for (const r of R) {
+    if (min && r[iD] < min) continue;
+    if (r[iD] > max) continue;
+    let ok = true;
+    for (const [k, idx] of DIMS) {
+      if (k !== ignore && state[k] && r[idx] !== state[k]) { ok = false; break; }
+    }
+    if (ok) out.push(r);
+  }
+  return out;
+}
+const monthsInRange = () => {
+  const min = rangeMin();
+  return MONTHS_ALL.filter(m => (!min || m >= min.slice(0, 7)) && m <= END.slice(0, 7));
+};
+
+/* ---------------- formatting ---------------- */
+const fmt$ = v => {
+  const a = Math.abs(v);
+  if (a >= 1e6) return "$" + (v / 1e6).toFixed(a >= 1e7 ? 1 : 2) + "M";
+  if (a >= 1e4) return "$" + Math.round(v / 1e3).toLocaleString() + "K";
+  return "$" + Math.round(v).toLocaleString();
+};
+const fmtInt = v => Math.round(v).toLocaleString();
+const fmtPct = (v, d = 1) => (v * 100).toFixed(d) + "%";
+const monthLbl = m => {
+  const [y, mm] = m.split("-");
+  const n = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+mm - 1];
+  return mm === "01" || m === MONTHS_ALL[0] ? `${n} ’${y.slice(2)}` : n;
+};
+const S = n => getComputedStyle(document.documentElement).getPropertyValue(`--s${n}`).trim();
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+const mctx = document.createElement("canvas").getContext("2d");
+function textW(s, font) {
+  mctx.font = font || '11px system-ui, -apple-system, "Segoe UI", sans-serif';
+  return mctx.measureText(s).width;
+}
+function pickTextColor(hex) {
+  hex = hex.trim();
+  if (hex[0] !== "#" || hex.length < 7) return "#ffffff";
+  const n = parseInt(hex.slice(1, 7), 16);
+  const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * f(n >> 16 & 255) + 0.7152 * f(n >> 8 & 255) + 0.0722 * f(n & 255);
+  return (1.05 / (L + 0.05)) >= ((L + 0.05) / 0.055) ? "#ffffff" : "#0b0b0b";
+}
+function ptOf(ev, node) {
+  if (ev.clientX !== undefined && ev.clientX !== 0) return ev;
+  const b = node.getBoundingClientRect();
+  return { clientX: b.left + b.width / 2, clientY: b.top + b.height / 2 };
+}
+
+/* ---------------- svg helpers ---------------- */
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function roundTopRect(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, h, w / 2));
+  return `M${x},${y + h} L${x},${y + r} Q${x},${y} ${x + r},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${y + h} Z`;
+}
+function roundRightRect(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w, h / 2));
+  return `M${x},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${y + h - r} Q${x + w},${y + h} ${x + w - r},${y + h} L${x},${y + h} Z`;
+}
+function niceStep(max) {
+  if (max <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(max / 4)));
+  for (const s of [1, 2, 2.5, 5, 10]) if (max / (s * p) <= 4.6) return s * p;
+  return 10 * p;
+}
+
+/* ---------------- tooltip ---------------- */
+const tip = document.getElementById("tip");
+function tipShow(x, y, title, rows) {
+  tip.textContent = "";
+  if (title) {
+    const t = document.createElement("div");
+    t.className = "tt"; t.textContent = title; tip.appendChild(t);
+  }
+  for (const [lbl, val, color] of rows) {
+    const r = document.createElement("div"); r.className = "tr";
+    if (color) {
+      const k = document.createElement("span"); k.className = "key";
+      k.style.borderTopColor = color; r.appendChild(k);
+    }
+    const l = document.createElement("span"); l.className = "lbl"; l.textContent = lbl;
+    const v = document.createElement("span"); v.className = "val"; v.textContent = val;
+    r.appendChild(l); r.appendChild(v); tip.appendChild(r);
+  }
+  tip.style.display = "block";
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let px = x + 14, py = y + 12;
+  if (px + tw > innerWidth - 8) px = x - tw - 12;
+  if (py + th > innerHeight - 8) py = y - th - 10;
+  tip.style.left = px + "px"; tip.style.top = py + "px";
+}
+const tipHide = () => { tip.style.display = "none"; };
+
+/* ---------------- aggregation ---------------- */
+function sumBy(rows, keyIdx, valIdx = iRV) {
+  const m = new Map();
+  for (const r of rows) m.set(r[keyIdx], (m.get(r[keyIdx]) || 0) + r[valIdx]);
+  return m;
+}
+function byMonth(rows, valIdx = iRV) {
+  const m = new Map();
+  for (const r of rows) {
+    const k = r[iD].slice(0, 7);
+    m.set(k, (m.get(k) || 0) + r[valIdx]);
+  }
+  return m;
+}
+function kpiPack(rows) {
+  let rev = 0, mg = 0, ret = 0, late = 0, ship = 0;
+  const orders = new Map();
+  for (const r of rows) {
+    rev += r[iRV]; mg += r[iMG]; ret += r[iRT]; late += r[iLT]; ship += r[iSH];
+    if (!orders.has(r[iO])) orders.set(r[iO], [r[iNP], r[iTK]]);
+  }
+  let npSum = 0, npN = 0, tk = 0;
+  for (const [np, t] of orders.values()) {
+    if (np !== null) { npSum += np; npN++; }
+    tk += t;
+  }
+  return {
+    rev, mg, lines: rows.length, orders: orders.size,
+    aov: orders.size ? rev / orders.size : 0,
+    mgPct: rev ? mg / rev : 0,
+    retRate: rows.length ? ret / rows.length : 0,
+    nps: npN ? npSum / npN : null,
+    onTime: ship ? 1 - late / ship : null,
+    tk100: orders.size ? 100 * tk / orders.size : 0,
+  };
+}
+
+/* ---------------- filters UI ---------------- */
+const SELECTS = [
+  ["f-rg", "rg", iRG, "All regions"], ["f-ch", "ch", iCH, "All channels"],
+  ["f-ca", "ca", iCA, "All categories"], ["f-sg", "sg", iSG, "All segments"],
+];
+for (const [id, key, idx, allLbl] of SELECTS) {
+  const sel = document.getElementById(id);
+  const vals = [...new Set(R.map(r => r[idx]))].sort();
+  const opt = document.createElement("option");
+  opt.value = ""; opt.textContent = allLbl; sel.appendChild(opt);
+  for (const v of vals) {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = v; sel.appendChild(o);
+  }
+  sel.addEventListener("change", () => { state[key] = sel.value || null; renderAll(); });
+}
+document.getElementById("presets").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  state.preset = b.dataset.p;
+  renderAll();
+});
+document.getElementById("reset").addEventListener("click", () => {
+  state.preset = "all"; state.rg = state.ch = state.ca = state.sg = null;
+  renderAll();
+});
+function syncFilterUI() {
+  for (const b of document.querySelectorAll("#presets button"))
+    b.setAttribute("aria-pressed", String(b.dataset.p === state.preset));
+  for (const [id, key] of SELECTS) {
+    const sel = document.getElementById(id);
+    sel.value = state[key] || "";
+    sel.classList.toggle("active", !!state[key]);
+  }
+}
+function toggleDim(key, val) {
+  state[key] = state[key] === val ? null : val;
+  renderAll();
+}
+
+/* table-view toggles */
+for (const card of document.querySelectorAll(".card[data-card]")) {
+  const btn = card.querySelector(".tbtn");
+  btn.addEventListener("click", () => {
+    const on = btn.getAttribute("aria-pressed") !== "true";
+    btn.setAttribute("aria-pressed", String(on));
+    card.querySelector(".viz").hidden = on;
+    card.querySelector(".ctable").hidden = !on;
+  });
+}
+function fillTable(card, cols, rows) {
+  const host = document.querySelector(`.card[data-card="${card}"] .ctable`);
+  host.textContent = "";
+  const t = document.createElement("table");
+  const tr = document.createElement("tr");
+  cols.forEach(([name, numeric]) => {
+    const th = document.createElement("th");
+    th.textContent = name; if (numeric) th.className = "n"; tr.appendChild(th);
+  });
+  t.appendChild(tr);
+  for (const row of rows) {
+    const trr = document.createElement("tr");
+    row.forEach((v, i) => {
+      const td = document.createElement("td");
+      td.textContent = v; if (cols[i][1]) td.className = "n"; trr.appendChild(td);
+    });
+    t.appendChild(trr);
+  }
+  host.appendChild(t);
+}
+function vizHost(card) {
+  const v = document.querySelector(`.card[data-card="${card}"] .viz`);
+  v.textContent = "";
+  return v;
+}
+function emptyNote(host) {
+  const d = document.createElement("div");
+  d.className = "empty"; d.textContent = "No data for this slice";
+  host.appendChild(d);
+}
+function legendInto(host, items) {
+  const lg = document.createElement("div"); lg.className = "legend";
+  for (const it of items) {
+    const li = document.createElement("span"); li.className = "li";
+    const k = document.createElement("span");
+    if (it.line) {
+      k.className = "lk" + (it.dash ? " dash" : "");
+      k.style.borderTopColor = it.color;
+    } else {
+      k.className = "sw"; k.style.background = it.color;
+    }
+    const t = document.createElement("span"); t.textContent = it.label;
+    li.appendChild(k); li.appendChild(t); lg.appendChild(li);
+  }
+  host.appendChild(lg);
+}
+
+/* ================= KPI row ================= */
+function renderKPIs() {
+  const cur = kpiPack(rowsFor());
+  const pr = prevRange();
+  const prev = pr ? kpiPack(rowsFor({ range: pr })) : null;
+  const host = document.getElementById("kpis");
+  host.textContent = "";
+  const defs = [
+    ["Revenue", fmt$(cur.rev), prev && prev.rev ? (cur.rev - prev.rev) / prev.rev : null, true, true],
+    ["Gross margin", fmtPct(cur.mgPct), prev ? cur.mgPct - prev.mgPct : null, true, false, "pt"],
+    ["Orders", fmtInt(cur.orders), prev && prev.orders ? (cur.orders - prev.orders) / prev.orders : null, true],
+    ["Avg order value", fmt$(cur.aov), prev && prev.aov ? (cur.aov - prev.aov) / prev.aov : null, true],
+    ["Return rate", fmtPct(cur.retRate), prev ? cur.retRate - prev.retRate : null, false, false, "pt"],
+    ["Avg NPS", cur.nps === null ? "–" : cur.nps.toFixed(1), prev && prev.nps !== null && cur.nps !== null ? cur.nps - prev.nps : null, true, false, "abs"],
+  ];
+  for (const [lbl, val, delta, upGood, spark, unit] of defs) {
+    const tile = document.createElement("div"); tile.className = "tile";
+    const l = document.createElement("div"); l.className = "tl"; l.textContent = lbl;
+    const v = document.createElement("div"); v.className = "tv"; v.textContent = val;
+    tile.appendChild(l); tile.appendChild(v);
+    const d = document.createElement("div"); d.className = "td";
+    if (delta !== null && isFinite(delta)) {
+      const up = delta >= 0;
+      const good = up === upGood;
+      const sp = document.createElement("span");
+      sp.className = "delta " + (good ? "up" : "down");
+      const txt = unit === "pt" ? Math.abs(delta * 100).toFixed(1) + " pt"
+        : unit === "abs" ? Math.abs(delta).toFixed(1)
+        : fmtPct(Math.abs(delta), 1);
+      sp.textContent = (up ? "▲ " : "▼ ") + txt;
+      d.appendChild(sp);
+      const cap = document.createElement("span"); cap.textContent = "vs prior period";
+      d.appendChild(cap);
+    } else {
+      d.textContent = state.preset === "all" ? "full history" : "no prior data";
+    }
+    tile.appendChild(d);
+    if (spark) {
+      const months = MONTHS_ALL.slice(-12);
+      const mm = byMonth(rowsFor({ range: [MONTHS_ALL[0] + "-01", END], ignore: null }));
+      const pts = months.map(m => mm.get(m) || 0);
+      const w = 120, h = 26, mx = Math.max(...pts, 1);
+      const svg = el("svg", { width: w, height: h, viewBox: `0 0 ${w} ${h}`, "aria-hidden": "true" });
+      const path = pts.map((p, i) =>
+        `${i ? "L" : "M"}${(i / (pts.length - 1)) * (w - 8) + 2},${h - 3 - (p / mx) * (h - 8)}`).join("");
+      el("path", { d: path, fill: "none", stroke: css("--axis"), "stroke-width": 1.6 }, svg);
+      const lx = (w - 8) + 2, ly = h - 3 - (pts[pts.length - 1] / mx) * (h - 8);
+      el("circle", { cx: lx, cy: ly, r: 3, fill: S(1), stroke: css("--surface"), "stroke-width": 1.5 }, svg);
+      tile.appendChild(svg);
+    }
+    host.appendChild(tile);
+  }
+}
+
+/* ================= trend chart ================= */
+function renderTrend() {
+  const host = vizHost("trend");
+  const months = monthsInRange();
+  const mm = byMonth(rowsFor());
+  const tgt = new Map();
+  for (const t of DATA.targets) {
+    if (!months.includes(t.m)) continue;
+    if (state.rg && t.rg !== state.rg) continue;
+    tgt.set(t.m, (tgt.get(t.m) || 0) + t.t);
+  }
+  const rev = months.map(m => mm.get(m) || 0);
+  const tg = months.map(m => tgt.get(m) || 0);
+  if (!months.length || rev.every(v => !v)) { emptyNote(host); return; }
+  const showTarget = !state.ch && !state.ca && !state.sg;
+  legendInto(host, [
+    { label: "Revenue", color: S(1), line: true },
+    ...(showTarget ? [{ label: "Target", color: css("--muted"), line: true, dash: true }] : []),
+  ]);
+  const W = Math.max(host.clientWidth || 640, 340), H = 268;
+  const M = { l: 44, r: 58, t: 8, b: 24 };
+  const pw = W - M.l - M.r, ph = H - M.t - M.b;
+  const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Monthly revenue against target" });
+  const maxV = Math.max(...rev, ...(showTarget ? tg : [0]), 1);
+  const step = niceStep(maxV), top = Math.ceil(maxV / step) * step;
+  const x = i => M.l + (months.length === 1 ? pw / 2 : (i / (months.length - 1)) * pw);
+  const y = v => M.t + ph - (v / top) * ph;
+  for (let v = 0; v <= top + 1; v += step) {
+    el("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: v === 0 ? css("--axis") : css("--grid"), "stroke-width": 1 }, svg);
+    el("text", { x: M.l - 7, y: y(v) + 3.5, "text-anchor": "end", class: "tick" }, svg).textContent = fmt$(v);
+  }
+  const lblStep = Math.ceil(months.length / 8);
+  months.forEach((m, i) => {
+    if (i % lblStep) return;
+    el("text", { x: x(i), y: H - 7, "text-anchor": "middle", class: "tick" }, svg).textContent = monthLbl(m);
+  });
+  const area = rev.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("") +
+    `L${x(months.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
+  el("path", { d: area, fill: S(1), "fill-opacity": 0.1 }, svg);
+  if (showTarget)
+    el("path", { d: tg.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join(""),
+      fill: "none", stroke: css("--muted"), "stroke-width": 1.5, "stroke-dasharray": "5 3" }, svg);
+  el("path", { d: rev.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join(""),
+    fill: "none", stroke: S(1), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+  const li = months.length - 1;
+  el("circle", { cx: x(li), cy: y(rev[li]), r: 4.5, fill: S(1), stroke: css("--surface"), "stroke-width": 2 }, svg);
+  el("text", { x: x(li) + 9, y: y(rev[li]) + 4, class: "blabel", "font-weight": 650 }, svg).textContent = fmt$(rev[li]);
+  const cross = el("line", { y1: M.t, y2: M.t + ph, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden" }, svg);
+  const hover = el("rect", { x: M.l, y: M.t, width: pw, height: ph, fill: "transparent" }, svg);
+  hover.addEventListener("pointermove", e => {
+    const rect = svg.getBoundingClientRect();
+    const rel = (e.clientX - rect.left - M.l) / pw;
+    const i = Math.max(0, Math.min(months.length - 1, Math.round(rel * (months.length - 1))));
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i));
+    cross.setAttribute("visibility", "visible");
+    const rows = [["Revenue", fmt$(rev[i]), S(1)]];
+    if (showTarget) rows.push(["Target", fmt$(tg[i]), css("--muted")],
+      ["vs target", fmtPct(tg[i] ? rev[i] / tg[i] - 1 : 0), null]);
+    tipShow(e.clientX, e.clientY, monthLbl(months[i]) + " " + months[i].slice(0, 4), rows);
+  });
+  hover.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); tipHide(); });
+  host.appendChild(svg);
+  fillTable("trend", [["Month", 0], ["Revenue", 1], ["Target", 1], ["Attainment", 1]],
+    months.map((m, i) => [m, fmt$(rev[i]), showTarget ? fmt$(tg[i]) : "–",
+      showTarget && tg[i] ? fmtPct(rev[i] / tg[i] - 1) : "–"]));
+}
+
+/* ================= stacked mix ================= */
+function stacked100(svg, yOff, entries, colors, onClick, selVal) {
+  const W = +svg.getAttribute("width");
+  const total = entries.reduce((s, e) => s + e.v, 0);
+  if (!total) return;
+  const bw = W - 2, bh = 26;
+  let cx = 1;
+  entries.forEach((e, i) => {
+    const w = (e.v / total) * (bw - (entries.length - 1) * 2);
+    const isFirst = i === 0, isLast = i === entries.length - 1;
+    const r = 4;
+    const leftRound = `M${cx + r},${yOff} L${cx + w},${yOff} L${cx + w},${yOff + bh} L${cx + r},${yOff + bh} Q${cx},${yOff + bh} ${cx},${yOff + bh - r} L${cx},${yOff + r} Q${cx},${yOff} ${cx + r},${yOff} Z`;
+    const pill = `M${cx + r},${yOff} L${cx + w - r},${yOff} Q${cx + w},${yOff} ${cx + w},${yOff + r} L${cx + w},${yOff + bh - r} Q${cx + w},${yOff + bh} ${cx + w - r},${yOff + bh} L${cx + r},${yOff + bh} Q${cx},${yOff + bh} ${cx},${yOff + bh - r} L${cx},${yOff + r} Q${cx},${yOff} ${cx + r},${yOff} Z`;
+    let d;
+    if (isFirst && isLast) d = pill;
+    else if (isFirst) d = leftRound;
+    else if (isLast) d = roundRightRect(cx, yOff, w, bh, r);
+    else d = `M${cx},${yOff} h${w} v${bh} h${-w} Z`;
+    const dim = selVal && e.k !== selVal;
+    const fillC = dim ? css("--deemph") : colors[i];
+    const p = el("path", { d, fill: fillC, class: "bar" }, svg);
+    const lblTxt = e.k + " " + fmtPct(e.v / total, 0);
+    if (w > textW(lblTxt) + 16) {
+      el("text", { x: cx + w / 2, y: yOff + bh / 2 + 3.5, "text-anchor": "middle",
+        "font-size": 10.5, fill: pickTextColor(fillC) }, svg).textContent = lblTxt;
+    }
+    const hit = el("rect", { x: cx, y: yOff - 2, width: Math.max(w, 6), height: bh + 4,
+      fill: "transparent", class: "hit", tabindex: 0, role: "button",
+      "aria-label": `${e.k}: ${fmt$(e.v)} (${fmtPct(e.v / total, 0)})` }, svg);
+    const show = ev => {
+      p.style.filter = "brightness(1.12)";
+      const pt = ptOf(ev, hit);
+      tipShow(pt.clientX, pt.clientY, null, [[e.k, `${fmt$(e.v)} · ${fmtPct(e.v / total, 0)}`, fillC]]);
+    };
+    hit.addEventListener("pointermove", show);
+    hit.addEventListener("focus", show);
+    hit.addEventListener("pointerleave", () => { p.style.filter = ""; tipHide(); });
+    hit.addEventListener("blur", () => { p.style.filter = ""; tipHide(); });
+    hit.addEventListener("click", () => onClick(e.k));
+    hit.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); onClick(e.k); } });
+    cx += w + 2;
+  });
+}
+function renderMix() {
+  const host = vizHost("mix");
+  const CHS = ["Online", "Retail", "Wholesale", "Marketplace"];
+  const SGS = ["Consumer", "Outdoor Pro", "Corporate & Team", "Reseller"];
+  const chm = sumBy(rowsFor({ ignore: "ch" }), iCH);
+  const sgm = sumBy(rowsFor({ ignore: "sg" }), iSG);
+  const chE = CHS.map(k => ({ k, v: chm.get(k) || 0 })).filter(e => e.v);
+  const sgE = SGS.map(k => ({ k, v: sgm.get(k) || 0 })).filter(e => e.v);
+  if (!chE.length && !sgE.length) { emptyNote(host); return; }
+  const colors = [S(1), S(2), S(3), S(4)];
+  const mkLegend = (keys, entries) => legendInto(host,
+    keys.filter(k => entries.some(e => e.k === k)).map((k, i) => ({ label: k, color: colors[keys.indexOf(k)] })));
+  const W = Math.max(host.clientWidth || 340, 240);
+  const lbl1 = document.createElement("p"); lbl1.className = "csub"; lbl1.textContent = "By channel";
+  host.appendChild(lbl1);
+  const svg1 = el("svg", { width: W, height: 30, viewBox: `0 0 ${W} 30`, role: "img", "aria-label": "Revenue share by channel" });
+  stacked100(svg1, 1, chE, chE.map(e => colors[CHS.indexOf(e.k)]), k => toggleDim("ch", k), state.ch);
+  host.appendChild(svg1);
+  mkLegend(CHS, chE);
+  const lbl2 = document.createElement("p"); lbl2.className = "csub"; lbl2.textContent = "By segment";
+  lbl2.style.marginTop = "10px";
+  host.appendChild(lbl2);
+  const svg2 = el("svg", { width: W, height: 30, viewBox: `0 0 ${W} 30`, role: "img", "aria-label": "Revenue share by segment" });
+  stacked100(svg2, 1, sgE, sgE.map(e => colors[SGS.indexOf(e.k)]), k => toggleDim("sg", k), state.sg);
+  host.appendChild(svg2);
+  mkLegend(SGS, sgE);
+  const chT = chE.reduce((s, e) => s + e.v, 0), sgT = sgE.reduce((s, e) => s + e.v, 0);
+  fillTable("mix", [["Group", 0], ["Member", 0], ["Revenue", 1], ["Share", 1]], [
+    ...chE.map(e => ["Channel", e.k, fmt$(e.v), fmtPct(e.v / chT, 1)]),
+    ...sgE.map(e => ["Segment", e.k, fmt$(e.v), fmtPct(e.v / sgT, 1)]),
+  ]);
+}
+
+/* ================= vertical bars (region) ================= */
+function renderRegion() {
+  const host = vizHost("region");
+  const rows = rowsFor({ ignore: "rg" });
+  const agg = sumBy(rows, iRG);
+  const orders = new Map();
+  for (const r of rows) {
+    if (!orders.has(r[iRG])) orders.set(r[iRG], new Set());
+    orders.get(r[iRG]).add(r[iO]);
+  }
+  const entries = [...agg.entries()].map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
+  if (!entries.length) { emptyNote(host); return; }
+  const W = Math.max(host.clientWidth || 340, 280), H = 238;
+  const M = { l: 40, r: 6, t: 20, b: 22 };
+  const pw = W - M.l - M.r, ph = H - M.t - M.b;
+  const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Revenue by region" });
+  const maxV = Math.max(...entries.map(e => e.v));
+  const step = niceStep(maxV), top = Math.ceil(maxV / step) * step;
+  const y = v => M.t + ph - (v / top) * ph;
+  for (let v = 0; v <= top + 1; v += step)
+    el("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: v === 0 ? css("--axis") : css("--grid") }, svg);
+  const band = pw / entries.length;
+  const bw = Math.min(24, band * 0.5);
+  entries.forEach((e, i) => {
+    const bx = M.l + band * i + (band - bw) / 2;
+    const sel = state.rg && e.k !== state.rg;
+    const p = el("path", { d: roundTopRect(bx, y(e.v), bw, y(0) - y(e.v), 4),
+      fill: sel ? css("--deemph") : S(1), class: "bar" }, svg);
+    el("text", { x: bx + bw / 2, y: y(e.v) - 6, "text-anchor": "middle", class: "blabel" }, svg)
+      .textContent = fmt$(e.v);
+    el("text", { x: bx + bw / 2, y: H - 7, "text-anchor": "middle", class: "tick" }, svg)
+      .textContent = e.k === "North America" ? "N. America" : e.k;
+    const hit = el("rect", { x: M.l + band * i, y: M.t, width: band, height: ph,
+      fill: "transparent", class: "hit", tabindex: 0, role: "button",
+      "aria-label": `${e.k}: ${fmt$(e.v)}` }, svg);
+    const show = ev => {
+      p.style.filter = "brightness(1.1)";
+      const pt = ptOf(ev, hit);
+      tipShow(pt.clientX, pt.clientY, e.k,
+        [["Revenue", fmt$(e.v), sel ? css("--deemph") : S(1)],
+         ["Orders", fmtInt(orders.get(e.k).size), null]]);
+    };
+    hit.addEventListener("pointermove", show);
+    hit.addEventListener("focus", show);
+    hit.addEventListener("pointerleave", () => { p.style.filter = ""; tipHide(); });
+    hit.addEventListener("blur", () => { p.style.filter = ""; tipHide(); });
+    hit.addEventListener("click", () => toggleDim("rg", e.k));
+    hit.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggleDim("rg", e.k); } });
+  });
+  host.appendChild(svg);
+  fillTable("region", [["Region", 0], ["Revenue", 1], ["Orders", 1]],
+    entries.map(e => [e.k, fmt$(e.v), fmtInt(orders.get(e.k).size)]));
+}
+
+/* ================= horizontal bars ================= */
+function hBars(card, entries, opts) {
+  const host = vizHost(card);
+  if (!entries.length) { emptyNote(host); return; }
+  const W = Math.max(host.clientWidth || 340, 300);
+  const rowH = 30, labelW = opts.labelW || 132;
+  const H = entries.length * rowH + 6;
+  const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.aria });
+  const maxV = Math.max(...entries.map(e => e.v));
+  const valW = 52;
+  const pw = W - labelW - valW - 10;
+  entries.forEach((e, i) => {
+    const yy = i * rowH + 5;
+    const bh = Math.min(18, rowH - 10);
+    const w = Math.max(2, (e.v / maxV) * pw);
+    const dim = opts.selKey && e.k !== opts.selKey;
+    const lbl = el("text", { x: labelW - 8, y: yy + bh / 2 + 4, "text-anchor": "end", class: "dlabel" }, svg);
+    let name = e.k;
+    while (textW(name + (name === e.k ? "" : "…")) > labelW - 14 && name.length > 4)
+      name = name.slice(0, -1);
+    lbl.textContent = name === e.k ? name : name.trimEnd() + "…";
+    const p = el("path", { d: roundRightRect(labelW, yy, w, bh, 4),
+      fill: dim ? css("--deemph") : (opts.color || S(1)), class: "bar" }, svg);
+    el("text", { x: labelW + w + 7, y: yy + bh / 2 + 4, class: "blabel" }, svg)
+      .textContent = opts.fmt(e.v);
+    const hit = el("rect", { x: 0, y: yy - 3, width: W, height: rowH - 4, fill: "transparent",
+      class: "hit" + (opts.onClick ? "" : " static"), tabindex: 0, role: opts.onClick ? "button" : "img",
+      "aria-label": `${e.k}: ${opts.fmt(e.v)}` }, svg);
+    const show = ev => {
+      p.style.filter = "brightness(1.1)";
+      const pt = ptOf(ev, hit);
+      tipShow(pt.clientX, pt.clientY, e.k,
+        opts.tipRows ? opts.tipRows(e) : [[opts.metric || "Value", opts.fmt(e.v), dim ? css("--deemph") : (opts.color || S(1))]]);
+    };
+    hit.addEventListener("pointermove", show);
+    hit.addEventListener("focus", show);
+    hit.addEventListener("pointerleave", () => { p.style.filter = ""; tipHide(); });
+    hit.addEventListener("blur", () => { p.style.filter = ""; tipHide(); });
+    if (opts.onClick) {
+      hit.addEventListener("click", () => opts.onClick(e.k));
+      hit.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); opts.onClick(e.k); } });
+    }
+  });
+  host.appendChild(svg);
+}
+function renderCategory() {
+  const rows = rowsFor({ ignore: "ca" });
+  const agg = sumBy(rows, iCA);
+  const mgs = sumBy(rows, iCA, iMG);
+  const entries = [...agg.entries()].map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
+  hBars("category", entries, {
+    aria: "Revenue by product category", fmt: fmt$, metric: "Revenue",
+    selKey: state.ca, onClick: k => toggleDim("ca", k),
+    tipRows: e => [["Revenue", fmt$(e.v), S(1)],
+                   ["Margin", fmtPct(e.v ? mgs.get(e.k) / e.v : 0), null]],
+  });
+  fillTable("category", [["Category", 0], ["Revenue", 1], ["Margin %", 1]],
+    entries.map(e => [e.k, fmt$(e.v), fmtPct(e.v ? mgs.get(e.k) / e.v : 0)]));
+}
+function renderProducts() {
+  const rows = rowsFor();
+  const agg = sumBy(rows, iPR);
+  const qty = sumBy(rows, iPR, iQ);
+  const entries = [...agg.entries()].map(([k, v]) => ({ k, v }))
+    .sort((a, b) => b.v - a.v).slice(0, 8);
+  hBars("products", entries, {
+    aria: "Top products by revenue", fmt: fmt$, metric: "Revenue", labelW: 148,
+    tipRows: e => [["Revenue", fmt$(e.v), S(1)], ["Units", fmtInt(qty.get(e.k)), null]],
+  });
+  fillTable("products", [["Product", 0], ["Revenue", 1], ["Units", 1]],
+    entries.map(e => [e.k, fmt$(e.v), fmtInt(qty.get(e.k))]));
+}
+
+/* ================= marketing ================= */
+function renderMarketing() {
+  const host = vizHost("marketing");
+  const months = monthsInRange();
+  const attr = byMonth(rowsFor().filter(r => r[iCP]));
+  const spend = new Map();
+  for (const s of DATA.spend)
+    if (months.includes(s.m)) spend.set(s.m, (spend.get(s.m) || 0) + s.s);
+  const a = months.map(m => attr.get(m) || 0);
+  const sp = months.map(m => spend.get(m) || 0);
+  if (!months.length || (a.every(v => !v) && sp.every(v => !v))) { emptyNote(host); return; }
+  legendInto(host, [
+    { label: "Attributed revenue", color: S(1) },
+    { label: "Ad spend", color: S(2) },
+  ]);
+  const W = Math.max(host.clientWidth || 520, 340), H = 232;
+  const M = { l: 44, r: 8, t: 8, b: 24 };
+  const pw = W - M.l - M.r, ph = H - M.t - M.b;
+  const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Monthly ad spend and campaign-attributed revenue" });
+  const maxV = Math.max(...a, ...sp, 1);
+  const step = niceStep(maxV), top = Math.ceil(maxV / step) * step;
+  const y = v => M.t + ph - (v / top) * ph;
+  for (let v = 0; v <= top + 1; v += step) {
+    el("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: v === 0 ? css("--axis") : css("--grid") }, svg);
+    el("text", { x: M.l - 7, y: y(v) + 3.5, "text-anchor": "end", class: "tick" }, svg).textContent = fmt$(v);
+  }
+  const band = pw / months.length;
+  const bw = Math.min(11, (band - 6) / 2);
+  const lblStep = Math.ceil(months.length / 8);
+  months.forEach((m, i) => {
+    const cx = M.l + band * i + band / 2;
+    if (i % lblStep === 0)
+      el("text", { x: cx, y: H - 7, "text-anchor": "middle", class: "tick" }, svg).textContent = monthLbl(m);
+    const r1 = el("path", { d: roundTopRect(cx - bw - 1, y(a[i]), bw, Math.max(0.5, y(0) - y(a[i])), 2.5), fill: S(1), class: "bar" }, svg);
+    const r2 = el("path", { d: roundTopRect(cx + 1, y(sp[i]), bw, Math.max(0.5, y(0) - y(sp[i])), 2.5), fill: S(2), class: "bar" }, svg);
+    const hit = el("rect", { x: M.l + band * i, y: M.t, width: band, height: ph, fill: "transparent", class: "hit static", tabindex: 0, role: "img",
+      "aria-label": `${m}: attributed revenue ${fmt$(a[i])}, spend ${fmt$(sp[i])}` }, svg);
+    const show = ev => {
+      r1.style.filter = r2.style.filter = "brightness(1.1)";
+      const pt = ptOf(ev, hit);
+      tipShow(pt.clientX, pt.clientY, monthLbl(months[i]) + " " + m.slice(0, 4), [
+        ["Attributed revenue", fmt$(a[i]), S(1)],
+        ["Ad spend", fmt$(sp[i]), S(2)],
+        ["ROAS", sp[i] ? (a[i] / sp[i]).toFixed(1) + "×" : "–", null],
+      ]);
+    };
+    hit.addEventListener("pointermove", show);
+    hit.addEventListener("focus", show);
+    hit.addEventListener("pointerleave", () => { r1.style.filter = r2.style.filter = ""; tipHide(); });
+    hit.addEventListener("blur", () => { r1.style.filter = r2.style.filter = ""; tipHide(); });
+  });
+  host.appendChild(svg);
+  fillTable("marketing", [["Month", 0], ["Ad spend", 1], ["Attributed revenue", 1], ["ROAS", 1]],
+    months.map((m, i) => [m, fmt$(sp[i]), fmt$(a[i]), sp[i] ? (a[i] / sp[i]).toFixed(1) + "×" : "–"]));
+}
+
+/* ================= ops ================= */
+function renderOps() {
+  const host = vizHost("ops");
+  const rows = rowsFor();
+  if (!rows.length) { emptyNote(host); return; }
+  const k = kpiPack(rows);
+  const months = monthsInRange();
+  let sess = 0;
+  for (const s of DATA.sessions) if (months.includes(s.m)) sess += s.s;
+  const conv = sess ? k.orders / sess : null;
+  const minis = document.createElement("div"); minis.className = "minis";
+  const scoped = state.rg || state.ch || state.ca || state.sg;
+  const mk = (val, lbl) => {
+    const d = document.createElement("div"); d.className = "mini";
+    const v = document.createElement("div"); v.className = "mv"; v.textContent = val;
+    const l = document.createElement("div"); l.className = "ml"; l.textContent = lbl;
+    d.appendChild(v); d.appendChild(l); minis.appendChild(d);
+  };
+  mk(k.onTime === null ? "–" : fmtPct(k.onTime, 1), "On-time delivery");
+  mk(k.tk100.toFixed(1), "Tickets per 100 orders");
+  mk(conv === null ? "–" : fmtPct(conv, 2), "Session → order conversion" + (scoped ? " (site-wide sessions)" : ""));
+  host.appendChild(minis);
+  const sub = document.createElement("p"); sub.className = "csub";
+  sub.textContent = "Returned lines by reason";
+  host.appendChild(sub);
+  const agg = new Map();
+  for (const r of rows) if (r[iRT] && r[iRR]) agg.set(r[iRR], (agg.get(r[iRR]) || 0) + 1);
+  const entries = [...agg.entries()].map(([kk, v]) => ({ k: kk, v })).sort((a, b) => b.v - a.v);
+  const wrap = document.createElement("div"); wrap.className = "viz-inner";
+  host.appendChild(wrap);
+  if (entries.length) {
+    const W = Math.max(host.clientWidth || 520, 300);
+    const svg = el("svg", { width: W, height: entries.length * 27 + 4, role: "img", "aria-label": "Returned lines by reason" });
+    const maxV = Math.max(...entries.map(e => e.v));
+    const labelW = 128, pw = W - labelW - 50;
+    entries.forEach((e, i) => {
+      const yy = i * 27 + 4, bh = 15;
+      el("text", { x: labelW - 8, y: yy + bh / 2 + 4, "text-anchor": "end", class: "dlabel" }, svg).textContent = e.k;
+      el("path", { d: roundRightRect(labelW, yy, Math.max(2, e.v / maxV * pw), bh, 4), fill: S(1) }, svg);
+      el("text", { x: labelW + Math.max(2, e.v / maxV * pw) + 7, y: yy + bh / 2 + 4, class: "blabel" }, svg).textContent = fmtInt(e.v);
+    });
+    wrap.appendChild(svg);
+  } else {
+    const d = document.createElement("div"); d.className = "empty"; d.textContent = "No returns in this slice";
+    wrap.appendChild(d);
+  }
+  fillTable("ops", [["Metric", 0], ["Value", 1]], [
+    ["On-time delivery", k.onTime === null ? "–" : fmtPct(k.onTime, 1)],
+    ["Tickets per 100 orders", k.tk100.toFixed(1)],
+    ["Session → order conversion", conv === null ? "–" : fmtPct(conv, 2)],
+    ...entries.map(e => [`Returns: ${e.k}`, fmtInt(e.v)]),
+  ]);
+}
+
+/* ================= lineage ================= */
+function renderLineage() {
+  const chips = document.getElementById("chips");
+  chips.textContent = "";
+  for (const l of DATA.lineage) {
+    const c = document.createElement("div"); c.className = "chip";
+    const f = document.createElement("span"); f.className = "fmt"; f.textContent = l.format;
+    const cn = document.createElement("div"); cn.className = "cn";
+    const sys = document.createElement("div"); sys.className = "sys"; sys.textContent = l.system;
+    const fl = document.createElement("div"); fl.className = "fl"; fl.textContent = l.file;
+    cn.appendChild(sys); cn.appendChild(fl);
+    const rw = document.createElement("span"); rw.className = "rw";
+    rw.textContent = String(l.rows).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    c.title = l.role;
+    c.appendChild(f); c.appendChild(cn); c.appendChild(rw);
+    chips.appendChild(c);
+  }
+  document.getElementById("flowline").textContent =
+    `${DATA.lineage.length} sources → conform → join on order line → ${fmtInt(R.length)} rows × ${DATA.cols.length}+ cols`;
+  document.getElementById("asof").innerHTML = "";
+  const a1 = document.createElement("div");
+  a1.innerHTML = "";
+  const strong = document.createElement("strong");
+  strong.textContent = fmtInt(DATA.meta.orders) + " orders";
+  a1.appendChild(strong);
+  a1.appendChild(document.createTextNode(" · " + fmtInt(R.length) + " order lines"));
+  const a2 = document.createElement("div");
+  a2.textContent = "Data through " + END;
+  const asof = document.getElementById("asof");
+  asof.appendChild(a1); asof.appendChild(a2);
+}
+
+/* ================= render all ================= */
+function renderAll() {
+  syncFilterUI();
+  tipHide();
+  renderKPIs();
+  renderTrend();
+  renderMix();
+  renderRegion();
+  renderCategory();
+  renderProducts();
+  renderMarketing();
+  renderOps();
+}
+renderLineage();
+renderAll();
+
+let raf = null;
+new ResizeObserver(() => {
+  if (raf) return;
+  raf = requestAnimationFrame(() => { raf = null; renderAll(); });
+}).observe(document.querySelector(".grid"));
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll);
+</script>
