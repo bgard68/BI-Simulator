@@ -34,7 +34,9 @@ python build_dashboard.py    # writes output/dashboard.html (open in a browser)
 ```
 
 Pure standard library — no pip installs, no dependencies at all. Deterministic
-(seeded RNG), so every rebuild produces identical data. Generated files are not
+(seeded RNG, pinned dates, no outside inputs), so every rebuild — local or
+CI — produces byte-identical data
+([how](docs/ARCHITECTURE.md#what-makes-it-deterministic)). Generated files are not
 committed; CI reruns the whole pipeline and deploys the result to GitHub Pages.
 Prefer downloads? Grab [flat_sales.csv](https://bgard68.github.io/bi-simulator/flat_sales.csv)
 or the raw [sources.zip](https://bgard68.github.io/bi-simulator/sources.zip)

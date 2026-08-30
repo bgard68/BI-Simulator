@@ -71,6 +71,39 @@ placeholder token and writes two variants: `output/dashboard.html`
 publishing). It also escapes `</` inside the JSON so embedded strings can
 never terminate the `<script>` block.
 
+## What makes it deterministic
+
+"Deterministic" here means: run the pipeline on any machine, any number of
+times, and you get **byte-identical output** — the same 7,858 order lines,
+the same $3.06M total, the same 1.3 MB dashboard. Four things make that
+true:
+
+1. **One seeded RNG, drawn in a fixed order.** The generator's first line
+   of behavior is `random.seed(42)`. Every random draw — customer names,
+   order counts, discounts, late shipments — comes from that single stream,
+   and the code always draws in the same sequence (same loops, same order).
+   Same seed + same draw order = the same "random" world, every time.
+2. **A pinned clock.** The simulation window is hard-coded
+   (`START = 2025-01-01`, `END = 2026-08-30`). Nothing calls
+   `datetime.now()`, so rebuilding next year produces the same data — not a
+   window that silently slides forward and changes every number.
+3. **Stable iteration and ordering.** Python dicts preserve insertion
+   order, rows are written in generation order, and anywhere a map could
+   vary the code sorts first. Join order, row order, and file order never
+   drift between runs.
+4. **No inputs from outside the repo.** No network calls, no environment
+   variables, no machine state. `etl.py` is a pure function of `sources/`;
+   `build_dashboard.py` is a pure function of `warehouse/` plus the
+   template. The only way the output changes is if the committed code
+   changes.
+
+Why it matters: CI's from-scratch rebuild provably matches your local one
+(same byte count), any diff in output traces to a diff in code, screenshots
+stay reproducible, and bug reports are perfectly replayable. To get a
+*different* world on purpose, change the seed or the generator's
+parameters — determinism means "same code, same data," not "data can never
+change."
+
 ## The dashboard itself
 
 One self-contained HTML file — no CDNs, no chart libraries, no build step.
@@ -122,8 +155,8 @@ flowchart LR
    intentional: the joins are visible as plain dictionaries, which is the
    teaching point.
 2. **Determinism over freshness.** A seeded world makes every rebuild
-   reproducible and every screenshot re-creatable. (This is also why the
-   scripts never call `datetime.now()` — the clock is pinned by config.)
+   reproducible and every screenshot re-creatable — the full mechanics are
+   in [What makes it deterministic](#what-makes-it-deterministic) above.
 3. **Conform before join.** All format normalization happens in one layer
    with counters, so the ETL can report exactly how much mess it fixed
    (111 region codes, 2 date formats, 1 casing bug).
