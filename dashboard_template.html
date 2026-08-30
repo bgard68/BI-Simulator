@@ -15,7 +15,7 @@
     --bad: #d03b3b;
     --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
     --wash: rgba(11, 11, 11, 0.045);
-    --sel: color-mix(in srgb, var(--s1) 12%, transparent);
+    --sel: color-mix(in srgb, var(--s1) 12%, var(--surface));
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -88,6 +88,7 @@
     border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; max-width: 170px;
   }
   .filters select.active { border-color: var(--s1); background: var(--sel); font-weight: 600; }
+  .filters select option { background: var(--surface); color: var(--ink); font-weight: 400; }
   .filters .reset {
     font: inherit; font-size: 12px; border: 1px solid var(--border); background: var(--surface);
     color: var(--ink2); border-radius: 7px; padding: 6px 11px; cursor: pointer;
