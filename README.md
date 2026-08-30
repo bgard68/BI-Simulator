@@ -15,7 +15,7 @@ single-file dashboard with cross-filtering, KPIs, and data lineage.
 
 ## Documentation
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** — the three pipeline stages, what
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — the three pipeline stages, what
   each script does, how the dashboard works inside, CI/CD, and the design
   decisions behind them.
 - **[docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md)** — every column of

@@ -53,7 +53,7 @@ A deliberately readable, stdlib-only pipeline in four movements:
    — which is exactly how real pipelines fail.
 3. **Join onto the grain** — the ERP order line is the grain; every other
    source attaches to it via one of four patterns (see
-   [docs/STAR_SCHEMA.md](docs/STAR_SCHEMA.md) for why each pattern exists):
+   [STAR_SCHEMA.md](STAR_SCHEMA.md) for why each pattern exists):
    dimension lookups by ID, one-to-one event joins, aggregate-then-join for
    many-to-one sources, and composite-key reference lookups (FX by
    month+currency).
