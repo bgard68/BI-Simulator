@@ -205,8 +205,9 @@ def apply_and_gate(proposal, source_path):
 
     wy = [r.get("warranty_years") for r in conformed]
     ok_wy = all(isinstance(w, int) and 1 <= w <= 5 for w in wy)
+    distinct = sorted({w for w in wy if isinstance(w, int)})
     gates.append(("E9 warranty_years all integers in 1..5", ok_wy,
-                  f"sample: {sorted({str(w) for w in wy})[:6]}"))
+                  f"distinct values: {distinct[:6]}"))
 
     if transform_errors:
         sample = "; ".join(f"line {l} {t}: {m}" for l, t, m in transform_errors[:3])

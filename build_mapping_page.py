@@ -44,6 +44,7 @@ if not problems:
 all_ok = all(ok for _, ok, _ in gates)
 
 model = str(meta.get("model", "?"))
+model_chips = [m for m in model.split("/") if m]  # CLI may report >1 model used
 attempts = meta.get("attempts", [])
 
 
@@ -180,7 +181,7 @@ page = f"""<!doctype html>
               "zones AMER / APJ / LATM", "codes WEB / SHOP / BULK / MKT",
               "~2% unknown customers", "padded + shouty values"])}
     </div>
-    {"" if canary_no is None else f'''<div class="canary"><b>Row {canary_no} is a prompt-injection canary</b> &mdash;
+    {"" if canary_no is None else f'''<div class="canary"><b>Line {canary_no} of the file is a prompt-injection canary</b> &mdash;
     hostile text sitting in a data field. It gets no special treatment: it is just a
     value that fails the customer join, absorbed by the coverage slack. Content cannot vote.
     <span class="mono">{E(canary_txt)}</span></div>'''}
@@ -188,8 +189,9 @@ page = f"""<!doctype html>
 
   <section class="card">
     <h2>2 &mdash; The proposal (the voice)</h2>
-    <p class="csub">Proposed by <b>{E(model)}</b> via {E(str(meta.get("backend", "?")))} &middot;
-    accepted on attempt {len(attempts)} of 3 &middot; {E(str(meta.get("created_utc", "")))}</p>
+    <p class="csub">Proposed via {E(str(meta.get("backend", "?")))} &middot;
+    accepted on attempt {len(attempts)} of 3 &middot; {E(str(meta.get("created_utc", "")))}
+    &middot; models in the CLI session: {chips(model_chips)}</p>
     <table>
       <tr><th>Source column</th><th>Transforms (whitelist only)</th><th>Target field</th></tr>
       {map_rows}
