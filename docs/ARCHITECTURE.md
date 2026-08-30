@@ -81,8 +81,11 @@ prefixed SKUs, alien enum codes, a prompt-injection canary);
 drawn from a closed transform vocabulary; `mapper/validate_mapping.py`
 applies the proposal to the full file and holds it to eleven deterministic
 gates (structure, parse rates, join coverage, canonical enums) — pass all or
-nothing lands. CI never calls a model: it replays the recorded, accepted
-proposal on every push. Full write-up: [AGENTIC_MAPPING.md](AGENTIC_MAPPING.md).
+nothing lands. The gates are themselves negative-case tested
+(`tests/test_gates.py`): sixteen cases corrupt the accepted proposal one
+defect at a time and assert the specific gate that must reject each. CI
+never calls a model: it replays the recorded, accepted proposal and runs the
+full suite on every push. Full write-up: [AGENTIC_MAPPING.md](AGENTIC_MAPPING.md).
 
 ## What makes it deterministic
 
