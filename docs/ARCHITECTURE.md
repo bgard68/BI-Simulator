@@ -158,7 +158,7 @@ flowchart LR
   A --> R["run generate + etl + build<br>on a clean runner"]
   R --> Z["assemble site/<br>index.html + flat_sales.csv + sources.zip"]
   Z --> D[deploy-pages]
-  D --> L[bgard68.github.io/bi-simulator]
+  D --> L[bgard68.github.io/BI-Simulator]
 ```
 
 - **`build-and-deploy.yml`** — reruns the full pipeline from source on every

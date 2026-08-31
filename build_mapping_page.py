@@ -22,7 +22,7 @@ RECORDED = os.path.join(ROOT, "mapper", "recorded", "proposal.json")
 BENCH = os.path.join(ROOT, "mapper", "recorded", "benchmark.json")
 SESSION = os.path.join(ROOT, "mapper", "recorded", "session.json")
 OUT = os.path.join(ROOT, "output", "mapping.html")
-REPO = "https://github.com/bgard68/bi-simulator"
+REPO = "https://github.com/bgard68/BI-Simulator"
 
 MODE_LABEL = {
     "standard": "unseen conventions",
@@ -368,7 +368,7 @@ python mapper/propose_mapping.py     # live model call, records on success
 python mapper/validate_mapping.py    # the gates, and the verdict</pre>
   </section>
 
-  <footer>Part of <a href="{REPO}">bi-simulator</a> &mdash; 18 simulated sources flattened
+  <footer>Part of <a href="{REPO}">BI-Simulator</a> &mdash; 18 simulated sources flattened
   into one model by an AI agent, with this 19th integrated by AI <i>inside</i> the
   pipeline, gated. Simulated data throughout.</footer>
 </div>

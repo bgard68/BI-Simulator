@@ -95,7 +95,7 @@ scope; the contract assumes one delimited record per line.
 
 ## See it rendered
 
-The live site's **[mapping evidence page](https://bgard68.github.io/bi-simulator/mapping.html)**
+The live site's **[mapping evidence page](https://bgard68.github.io/BI-Simulator/mapping.html)**
 is generated from these exact artifacts (`build_mapping_page.py`) on every
 push: the raw unknown file, the canary row, the proposal's transform chains
 and value maps, and the gate-by-gate verdict — recomputed at build time so
@@ -176,7 +176,7 @@ runs the whole set cold and scores *correct outcomes* — acceptances for
 mappable files, refusals for unmappable ones — writing statistics to
 `mapper/runs/benchmark.json` (checkpointed per variant; `--append` resumes,
 so long runs can be done in chunks; `--publish` writes the committed summary
-the [evidence page](https://bgard68.github.io/bi-simulator/mapping.html)
+the [evidence page](https://bgard68.github.io/BI-Simulator/mapping.html)
 renders).
 
 **Published run — 50 variants, 50 correct outcomes:**

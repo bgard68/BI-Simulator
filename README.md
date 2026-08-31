@@ -1,11 +1,11 @@
-# BI Simulator — 18 sources → 1 flat table → dashboard
+# BI-Simulator — 18 sources → 1 flat table → dashboard
 
-[![build-and-deploy](https://github.com/bgard68/bi-simulator/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/bgard68/bi-simulator/actions/workflows/build-and-deploy.yml)
-[![codeql](https://github.com/bgard68/bi-simulator/actions/workflows/codeql.yml/badge.svg)](https://github.com/bgard68/bi-simulator/actions/workflows/codeql.yml)
+[![build-and-deploy](https://github.com/bgard68/BI-Simulator/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/bgard68/BI-Simulator/actions/workflows/build-and-deploy.yml)
+[![codeql](https://github.com/bgard68/BI-Simulator/actions/workflows/codeql.yml/badge.svg)](https://github.com/bgard68/BI-Simulator/actions/workflows/codeql.yml)
 
-**Live demo: <https://bgard68.github.io/bi-simulator/>** — an interactive,
+**Live demo: <https://bgard68.github.io/BI-Simulator/>** — an interactive,
 Power BI-style dashboard rebuilt from scratch by CI on every push. The
-**[mapping evidence page](https://bgard68.github.io/bi-simulator/mapping.html)**
+**[mapping evidence page](https://bgard68.github.io/BI-Simulator/mapping.html)**
 replays a real AI mapping session in an embedded terminal — one unseen file
 accepted, one correctly refused — alongside the model's proposal, the
 eleven-gate verdict, and the 50-variant benchmark.
@@ -81,8 +81,8 @@ Pure standard library — no pip installs, no dependencies at all. Deterministic
 CI — produces byte-identical data
 ([how](docs/ARCHITECTURE.md#what-makes-it-deterministic)). Generated files are not
 committed; CI reruns the whole pipeline and deploys the result to GitHub Pages.
-Prefer downloads? Grab [flat_sales.csv](https://bgard68.github.io/bi-simulator/flat_sales.csv)
-or the raw [sources.zip](https://bgard68.github.io/bi-simulator/sources.zip)
+Prefer downloads? Grab [flat_sales.csv](https://bgard68.github.io/BI-Simulator/flat_sales.csv)
+or the raw [sources.zip](https://bgard68.github.io/BI-Simulator/sources.zip)
 from the live site.
 
 ## The 18 sources
