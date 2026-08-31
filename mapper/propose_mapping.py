@@ -120,7 +120,7 @@ def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False):
     """The propose -> gate -> feedback loop. Returns (accepted, attempts)."""
     say = (lambda *a: None) if quiet else print
     call = call_claude_cli if backend == "claude-cli" else call_openai_compatible
-    attempts, feedback = [], ""
+    attempts, feedback, last_problems = [], "", None
     for attempt in range(1, max_attempts + 1):
         prompt = build_prompt(source, feedback)
         say(f"attempt {attempt}: calling model via {backend} ...")
@@ -152,6 +152,16 @@ def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False):
                 }, "proposal": proposal}, f, indent=1)
             say(f"accepted on attempt {attempt} -> {out}")
             return True, attempts
+        # Retrying is only worth a model call if the feedback might change the
+        # outcome. An identical rejection twice running means the file cannot
+        # satisfy the contract -- more attempts burn tokens to learn nothing.
+        signature = tuple(problems + failed)
+        if signature == last_problems:
+            say(f"  rejected identically twice — the file cannot satisfy the "
+                f"contract; stopping after {attempt} attempts")
+            attempts[-1]["stopped_early"] = True
+            return False, attempts
+        last_problems = signature
         feedback = "\n".join(problems + failed)
         say(f"  rejected: {len(problems) + len(failed)} problem(s); retrying with feedback")
     return False, attempts
@@ -179,7 +189,17 @@ def main():
         if os.path.abspath(args.out) == os.path.abspath(RECORDED):
             print("now run: python mapper/validate_mapping.py")
         return 0
-    print("no proposal survived the gates; attempts:", json.dumps(attempts, indent=1))
+
+    print(f"\nREFUSED — no proposal survived the gates "
+          f"({len(attempts)} attempt(s), nothing written)")
+    for a in attempts:
+        reasons = a.get("structural_problems", []) + a.get("failed_gates", [])
+        tag = "  [identical — stopped]" if a.get("stopped_early") else ""
+        print(f"  attempt {a['attempt']}: "
+              f"{reasons[0] if reasons else a.get('outcome', '?')}{tag}")
+        for extra in reasons[1:]:
+            print(f"{'':13}{extra}")
+    print("  the source cannot satisfy the warehouse contract; no rows land")
     return 1
 
 

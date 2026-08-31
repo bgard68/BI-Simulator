@@ -44,7 +44,8 @@ def run_step(argv, label, cap=MAX_LINES):
         if not text:
             continue
         if len(lines) < cap:
-            lines.append({"t": round(time.monotonic() - t0, 2), "text": text[:150]})
+            shown = text if len(text) <= 150 else text[:149].rstrip() + "…"
+            lines.append({"t": round(time.monotonic() - t0, 2), "text": shown})
         else:
             dropped += 1
     p.wait()

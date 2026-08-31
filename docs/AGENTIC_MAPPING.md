@@ -110,13 +110,23 @@ nobody had seen, generated moments earlier from fresh seeds:
 
 - **accepted** — the model reads a semicolon-delimited file with `YYYYMMDD`
   dates and unfamiliar zone codes, and all eleven gates pass
-- **refused** — a file with no region column at all, where the model tries
-  three times, the feedback loop fires on each rejection
-  (`target 'region' must be mapped exactly once (mapped 0x)`), and nothing
-  lands
+- **refused** — a file with no region column at all. The recorded run is
+  worth reading closely, because the model does not fail the same way twice:
+  attempt 1 leaves `region` unmapped (`must be mapped exactly once (mapped
+  0x)`); attempt 2, pushed by that feedback, *does* map something to region
+  — and the values are all perfectly canonical, so a membership check would
+  have waved them through. The CRM cross-check catches it: **40.8%
+  agreement**, far under the 95% floor. Attempt 3 goes back to leaving it
+  unmapped, and nothing lands.
 
-That second scene is the one worth watching: it is the system declining to
-invent data it does not have. For **live** runs from the browser,
+That second scene is the one worth watching. It is the system declining to
+invent data it does not have — and it is the ground-truth arm of E8 earning
+its existence on camera, catching exactly the wrong-but-canonical mapping it
+was added to catch.
+
+The loop also stops early: if two consecutive attempts fail with an
+*identical* problem set, retrying cannot help, so it gives up rather than
+spending another model call. For **live** runs from the browser,
 the `live-map` workflow gives the repo an Actions "Run workflow" button; it
 needs the one-time `CLAUDE_CODE_OAUTH_TOKEN` repo secret (mint locally with
 `claude setup-token`).
