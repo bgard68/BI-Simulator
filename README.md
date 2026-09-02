@@ -48,6 +48,22 @@ delimiters, hostile column names, and files that are deliberately
 **50 such files: 50/50 correct outcomes** — 43 of 43 mappable ones accepted
 (all on the first attempt), 7 of 7 unmappable ones refused.
 
+**Two governance controls sit around that loop**, because "the gates passed"
+is not the same as "this is allowed to run in production":
+
+- **Nothing sensitive reaches the model.** `mapper/redact.py` replaces
+  emails, names, addresses, phone numbers and account identifiers with
+  type-preserving surrogates *before* a sample enters a prompt — the real
+  file is only ever read by the deterministic layer, locally. A test asserts
+  no email from the real Providence file appears in the built prompt, and the
+  external results are unchanged with redaction on: the model never needed
+  the values, only their shape.
+- **A named human signs off.** Passing the gates makes a mapping eligible,
+  not approved; `mapper/approve.py` records who accepted it and binds that to
+  a fingerprint of the exact proposal, and CI refuses to land an unapproved
+  one. When a source later drifts, the replay stops satisfying its gates and
+  CI opens a re-propose task rather than just going red.
+
 **And it works on files this project did not write.**
 `fetch_external_sources.py` pulls five real purchase-order exports from public
 government portals — Providence RI (CSV), Vermont (JSON), Edmonton (XML), LA

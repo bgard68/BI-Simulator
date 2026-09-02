@@ -27,7 +27,21 @@ jobs:
           python generate_sources.py
           python generate_unknown_source.py
       - name: Agentic mapping replay gate (must pass before anything lands)
-        run: python mapper/validate_mapping.py
+        id: replay
+        run: python mapper/validate_mapping.py --require-approval
+      - name: Schema drift - open a re-propose task
+        if: ${{ failure() && steps.replay.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="Mapping replay failed - re-propose needed"
+          if gh issue list --state open --search "$TITLE in:title" --json number --jq 'length' | grep -q '^0$'; then
+            gh issue create --title "$TITLE" \
+              --label "" \
+              --body "$(printf 'The recorded mapping no longer satisfies its gates on commit %s.\n\nThis is the expected signal when a source changes shape: the replayed proposal is measured against the current file and stopped before anything lands. It is a task, not a build defect.\n\n1. `python mapper/live_run.py` to propose a fresh mapping\n2. review it: `python mapper/approve.py --show`\n3. sign it: `python mapper/approve.py --approve --by "<you>"`\n\nRun: %s/actions/runs/%s\n\n```\n%s\n```\n' "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$(cat mapper/recorded/validation_report.md 2>/dev/null | head -30)")"
+          else
+            echo "a re-propose issue is already open"
+          fi
       - name: Flatten and build (19th source joins via its gated output)
         run: |
           python etl.py

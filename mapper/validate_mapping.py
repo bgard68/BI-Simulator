@@ -31,6 +31,9 @@ def main():
     ap.add_argument("--report", default=os.path.join(ROOT, "mapper", "recorded", "validation_report.md"))
     ap.add_argument("--out", default=os.path.join(ROOT, "warehouse", "warranty_conformed.csv"))
     ap.add_argument("--contract", choices=sorted(CONTRACTS), default="warranty")
+    ap.add_argument("--require-approval", action="store_true",
+                    help="refuse to land a mapping no human has signed off "
+                         "(what CI uses; see mapper/approve.py)")
     args = ap.parse_args()
 
     global lib
@@ -52,6 +55,22 @@ def main():
     else:
         empirical, conformed = lib.apply_and_gate(proposal, args.source)
     gates += empirical
+
+    # The human gate. Passing the machine checks makes a mapping eligible;
+    # a person still decides that it means what the business thinks it means.
+    if args.require_approval:
+        import approve as approval_lib
+        appr = recorded.get("approval") or {}
+        signed = appr.get("status") == "approved"
+        intact = appr.get("proposal_fingerprint") == approval_lib.fingerprint(proposal)
+        if signed and not intact:
+            detail = "approved, but the proposal changed since sign-off"
+        elif signed:
+            detail = f"approved by {appr.get('by', '?')} on {appr.get('at', '?')}"
+        else:
+            detail = f"status={appr.get('status', 'pending')} - no human sign-off"
+        gates.append(("H1 a named human approved this mapping",
+                      bool(signed and intact), detail))
 
     all_ok = all(ok for _, ok, _ in gates)
 

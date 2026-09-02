@@ -1,5 +1,5 @@
 {
- "created_utc": "2026-09-02T14:15:26+00:00",
+ "created_utc": "2026-09-02T19:00:27+00:00",
  "backend": "claude-cli",
  "files": 5,
  "correct_outcomes": 5,
@@ -136,7 +136,6 @@
    "rows": 0,
    "gates": [],
    "refusal_reasons": [
-    "required target 'po_date' must be mapped exactly once (mapped 0x)",
     "required target 'amount' must be mapped exactly once (mapped 0x)",
     "required target 'region' must be mapped exactly once (mapped 0x)"
    ]
@@ -166,7 +165,7 @@
    "should_accept": false,
    "accepted": false,
    "correct": true,
-   "attempts": 3,
+   "attempts": 2,
    "rows": 0,
    "gates": [],
    "refusal_reasons": [

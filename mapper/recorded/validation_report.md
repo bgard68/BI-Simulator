@@ -15,5 +15,6 @@ Proposal by `claude-haiku-4-5-20251001/claude-opus-5[1m]` via `claude-cli` on 20
 | E7 channels 100% canonical and >=95% agree with ERP | PASS | all canonical; 1071/1071 = 100.0% agree with the ERP channel for that purchase |
 | E8 regions 100% canonical and >=95% agree with CRM | PASS | all canonical; 1071/1071 = 100.0% agree with the joined customer's CRM region |
 | E9 warranty_years all integers in 1..5 | PASS | distinct values: [1, 2, 3, 5] |
+| H1 a named human approved this mapping | PASS | approved by Burt Gardner on 2026-09-02T19:01:34+00:00 |
 
 **Verdict: ACCEPTED** - conformed table written.

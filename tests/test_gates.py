@@ -8,6 +8,7 @@ Run:  python -m unittest discover -s tests -v
       (after generate_sources.py and generate_unknown_source.py)
 """
 import copy
+import re
 import hashlib
 import json
 import os
@@ -307,3 +308,105 @@ class TestPublicPOContract(unittest.TestCase):
         wrong = [r["file"] for r in ex["results"] if not r["correct"]]
         self.assertEqual(wrong, [], f"wrong outcomes: {wrong}")
         self.assertGreaterEqual(ex["refused"], 1, "a run with no refusals proves nothing")
+
+
+class TestRedaction(unittest.TestCase):
+    """Nothing sensitive may reach a model. These tests fail if it does."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, os.path.join(ROOT, "mapper"))
+        import redact, propose_mapping
+        cls.redact, cls.pm = redact, propose_mapping
+        cls.ext = os.path.join(ROOT, "incoming", "external",
+                               "providence_purchase_orders.csv")
+
+    def test_emails_are_replaced_with_shape_preserving_surrogates(self):
+        out = self.redact.redact_value("christine.martinez@wbmason.com")
+        self.assertNotIn("wbmason", out)
+        self.assertNotIn("christine", out.lower())
+        self.assertIn("@", out)                    # still reads as an email
+
+    def test_surrogates_are_deterministic(self):
+        a = self.redact.redact_value("a.person@example.com")
+        b = self.redact.redact_value("a.person@example.com")
+        c = self.redact.redact_value("other.person@example.com")
+        self.assertEqual(a, b)                     # cardinality preserved
+        self.assertNotEqual(a, c)
+
+    def test_header_hints_catch_names_and_addresses(self):
+        self.assertEqual(self.redact.classify_header("vendor_contct"), "person")
+        self.assertEqual(self.redact.classify_header("e_mail_address"), "email")
+        self.assertEqual(self.redact.classify_header("address1"), "address")
+        self.assertIsNone(self.redact.classify_header("po_number"))
+
+    def test_values_needed_for_mapping_are_untouched(self):
+        for keep in ("2026-07-31T00:00:00.000", "4000", "MA", "WB MASON CO.   INC"):
+            self.assertEqual(self.redact.redact_value(keep), keep)
+
+    def test_no_raw_pii_reaches_the_prompt(self):
+        if not os.path.exists(self.ext):
+            self.skipTest("external file not fetched")
+        import public_po_lib
+        self.pm.lib = public_po_lib
+        prompt = self.pm.build_prompt(self.ext)
+        with open(self.ext, encoding="utf-8") as f:
+            raw = f.read()
+        emails = set(re.findall(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}", raw))
+        leaked = [e for e in emails if e in prompt]
+        self.assertEqual(leaked, [], f"raw emails reached the prompt: {leaked[:3]}")
+        self.assertIn("example.invalid", prompt)   # surrogates are present
+
+    def test_opting_out_is_explicit_and_visible(self):
+        if not os.path.exists(self.ext):
+            self.skipTest("external file not fetched")
+        import public_po_lib
+        self.pm.lib = public_po_lib
+        self.pm.build_prompt(self.ext, no_redact=True)
+        self.assertTrue(self.pm.LAST_REDACTION.get("skipped"))
+
+
+class TestHumanApproval(unittest.TestCase):
+    """Passing the gates makes a mapping eligible, not approved."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, os.path.join(ROOT, "mapper"))
+        import approve
+        cls.approve = approve
+
+    def test_recorded_proposal_is_signed(self):
+        with open(RECORDED, encoding="utf-8") as f:
+            doc = json.load(f)
+        appr = doc.get("approval") or {}
+        self.assertEqual(appr.get("status"), "approved", "recorded run is unsigned")
+        self.assertTrue(appr.get("by"), "an approval must name a person")
+
+    def test_fingerprint_binds_approval_to_the_exact_proposal(self):
+        with open(RECORDED, encoding="utf-8") as f:
+            doc = json.load(f)
+        fp = self.approve.fingerprint(doc["proposal"])
+        self.assertEqual(fp, doc["approval"]["proposal_fingerprint"])
+        tampered = copy.deepcopy(doc["proposal"])
+        tampered["columns"][0]["target"] = "region"
+        self.assertNotEqual(self.approve.fingerprint(tampered),
+                            doc["approval"]["proposal_fingerprint"],
+                            "editing a proposal must invalidate its approval")
+
+    def test_ci_refuses_an_unapproved_mapping(self):
+        import tempfile, shutil
+        with open(RECORDED, encoding="utf-8") as f:
+            doc = json.load(f)
+        doc.pop("approval", None)
+        tmp = os.path.join(tempfile.gettempdir(), "unapproved_proposal.json")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(doc, f)
+        r = subprocess.run(
+            [sys.executable, os.path.join(ROOT, "mapper", "validate_mapping.py"),
+             "--proposal", tmp, "--require-approval",
+             "--report", os.path.join(tempfile.gettempdir(), "r.md"),
+             "--out", os.path.join(tempfile.gettempdir(), "o.csv")],
+            capture_output=True, text=True, cwd=ROOT)
+        self.assertEqual(r.returncode, 1, "unapproved mapping was allowed to land")
+        self.assertIn("H1", r.stdout)
+        os.remove(tmp)

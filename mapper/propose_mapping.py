@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mapping_lib
 import public_po_lib
+import redact
 
 CONTRACTS = {"warranty": mapping_lib, "public_po": public_po_lib}
 lib = mapping_lib                      # default; --contract swaps it
@@ -94,21 +95,70 @@ FILE SAMPLE ({name}, {total} record(s) total; excerpt):
 {feedback}"""
 
 
-def build_sample(source):
-    """Line-based excerpt for delimited files; character-based for JSON/XML,
-    which are often one enormous line."""
+LAST_REDACTION = {}     # populated by build_sample, reported by the caller
+
+
+def build_sample(source, no_redact=False):
+    """An excerpt of the file for the prompt -- REDACTED unless explicitly
+    disabled. Line-based for delimited files; character-based for JSON/XML,
+    which are often one enormous line.
+
+    A mapping proposal needs the shape of a value, never the value, so
+    sensitive fields are replaced with type-preserving surrogates before the
+    text ever reaches a model. The real file is untouched: the deterministic
+    layer conforms it locally, and nothing sensitive leaves the machine.
+    """
     with open(source, encoding="utf-8", errors="replace") as f:
         text = f.read()
     rows = text.splitlines()
     if lib is public_po_lib and len(rows) < 5:      # single-line json/xml
-        return text[:6000], f"~{len(text)//1000}KB of"
-    total = max(len(rows) - 1, 0)
-    picks = rows[:26] + [rows[i] for i in range(200, min(len(rows), 1001), 200)]
-    return "\n".join(picks)[:9000], total
+        sample, total = text[:6000], f"~{len(text)//1000}KB of"
+    else:
+        total = max(len(rows) - 1, 0)
+        picks = rows[:26] + [rows[i] for i in range(200, min(len(rows), 1001), 200)]
+        sample = "\n".join(picks)[:9000]
+
+    LAST_REDACTION.clear()
+    if no_redact:
+        LAST_REDACTION["skipped"] = True
+        return sample, total
+
+    header_cols = []
+    first = rows[0] if rows else ""
+    for d in ("|", "\t", ";", ",", "~", "^"):
+        if d in first:
+            header_cols = [c.strip().strip('"') for c in first.split(d)]
+            break
+    hinted = {c: redact.classify_header(c) for c in header_cols}
+    hinted = {c: k for c, k in hinted.items() if k}
+
+    before = sample
+    sample = redact.redact_text(sample)
+    # column-name hints: redact whole positional fields in delimited samples
+    if header_cols and hinted:
+        d = next(x for x in ("|", "\t", ";", ",", "~", "^") if x in first)
+        idx = {c: i for i, c in enumerate(header_cols)}
+        out_lines = [sample.splitlines()[0]] if sample.splitlines() else []
+        for line in sample.splitlines()[1:]:
+            parts = line.split(d)
+            if len(parts) == len(header_cols):
+                for col, kind in hinted.items():
+                    i = idx[col]
+                    if parts[i].strip():
+                        parts[i] = redact.surrogate(parts[i], kind)
+            out_lines.append(d.join(parts))
+        sample = "\n".join(out_lines)
+
+    LAST_REDACTION.update({
+        "changed": sample != before,
+        "hinted_columns": hinted,
+        "sample_chars": len(sample),
+    })
+    return sample, total
 
 
-def build_prompt(source, feedback=""):
-    sample, total = build_sample(source)
+def build_prompt(source, feedback="", no_redact=False):
+    sample, total = build_sample(source, no_redact=no_redact)
     fb = ""
     if feedback:
         fb = ("\nYOUR PREVIOUS PROPOSAL FAILED THESE DETERMINISTIC GATES -- "
@@ -158,13 +208,21 @@ def call_openai_compatible(prompt):
     return body["choices"][0]["message"]["content"], model
 
 
-def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False):
+def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False,
+                no_redact=False):
     """The propose -> gate -> feedback loop. Returns (accepted, attempts)."""
     say = (lambda *a: None) if quiet else print
     call = call_claude_cli if backend == "claude-cli" else call_openai_compatible
     attempts, feedback, last_problems = [], "", None
     for attempt in range(1, max_attempts + 1):
-        prompt = build_prompt(source, feedback)
+        prompt = build_prompt(source, feedback, no_redact=no_redact)
+        if attempt == 1:
+            hinted = LAST_REDACTION.get("hinted_columns") or {}
+            if LAST_REDACTION.get("skipped"):
+                say("  !! redaction DISABLED - raw values are being sent to the model")
+            elif hinted or LAST_REDACTION.get("changed"):
+                cols = ", ".join(f"{c} ({k})" for c, k in sorted(hinted.items()))
+                say(f"  redacted before sending: {cols or 'content-matched values'}")
         say(f"attempt {attempt}: calling model via {backend} ...")
         reply, model = call(prompt)
         try:
@@ -190,6 +248,7 @@ def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False):
                     "backend": backend, "model": model,
                     "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "source_file": os.path.relpath(source, ROOT).replace(os.sep, "/"),
+                    "redaction": dict(LAST_REDACTION),
                     "attempts": attempts,
                 }, "proposal": proposal}, f, indent=1)
             say(f"accepted on attempt {attempt} -> {out}")
@@ -221,17 +280,20 @@ def main():
                     help="where to write the accepted proposal")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--max-attempts", type=int, default=3)
+    ap.add_argument("--no-redact", action="store_true",
+                    help="send raw values to the model (off by default; only "
+                         "for data you have confirmed carries nothing sensitive)")
     args = ap.parse_args()
 
     global lib
     lib = CONTRACTS[args.contract]
 
     if args.dry_run:
-        print(build_prompt(args.source))
+        print(build_prompt(args.source, no_redact=args.no_redact))
         return 0
 
-    accepted, attempts = run_propose(args.source, args.out,
-                                     args.backend, args.max_attempts)
+    accepted, attempts = run_propose(args.source, args.out, args.backend,
+                                     args.max_attempts, no_redact=args.no_redact)
     if accepted:
         if os.path.abspath(args.out) == os.path.abspath(RECORDED):
             print("now run: python mapper/validate_mapping.py")

@@ -41,6 +41,29 @@ on attempt 1**: it found the delimiter, the day-first date format, the SKU
 prefix, and — unprompted — put `strip`/`upper` ahead of the value maps, which
 is exactly what neutralizes the padded `" AMER "` values.
 
+## Before the voice: what the model is allowed to see
+
+A mapping proposal needs the *shape* of a value — is this an email, which
+date format, what prefix — never the value itself. So `mapper/redact.py`
+rewrites sensitive fields before the sample is put in a prompt, and the real
+file is never sent anywhere: the deterministic layer conforms it locally.
+
+Detection is column-name hints plus content patterns (email, phone, SSN,
+card, IP), deliberately biased toward over-redacting. Surrogates preserve
+type and cardinality: `christine.martinez@wbmason.com` becomes
+`userf40513@example.invalid` — still recognisably an email, still identical
+everywhere that address recurs, and carrying nothing about the person. Dates,
+quantities, prices, codes and company names pass through untouched, because
+those *are* the signal.
+
+This is not hypothetical here. The Providence file carries a
+`vendor_contct` name column and an `e_mail_address` column of real municipal
+suppliers' addresses. A test asserts that no email in that file appears in
+the built prompt, and the accepted proposals were produced from redacted
+samples — the external results are **5/5 with redaction on**, so the
+protection costs nothing in mapping quality. Opting out is explicit
+(`--no-redact`) and announces itself in the run log.
+
 ## The vote: `mapper/validate_mapping.py`
 
 Deterministic, dependency-free Python. It applies the proposal to the **full
@@ -136,6 +159,29 @@ federated credential scoped to this exact repo and branch, and the model
 credential is read from Azure Key Vault inside the run and masked from the
 log. A plain `CLAUDE_CODE_OAUTH_TOKEN` repo secret still works as a fallback
 if the Azure variables are absent.
+
+## The human gate: `mapper/approve.py`
+
+Passing the machine checks makes a mapping **eligible**, not **approved**.
+The gates prove a proposal is consistent with data already trusted; they
+cannot know that a vendor's `AMT` column is net rather than gross, or that
+this supplier's feed is the one legal signed off on. That judgement is a
+person's, once, per source.
+
+So a recorded proposal carries an `approval` block naming a human, and
+`validate_mapping.py --require-approval` — which CI uses — refuses to let an
+unapproved mapping land. The approval is bound to a fingerprint of the exact
+proposal, so editing the mapping silently invalidates the sign-off rather
+than inheriting it.
+
+```
+python mapper/approve.py --show                     # read it before signing
+python mapper/approve.py --approve --by "Your Name" --note "checked AMT is net"
+```
+
+**When a source drifts**, the replayed mapping stops satisfying its gates.
+That is the system working, not a broken build — so CI opens a *re-propose*
+task with the failing report attached instead of merely going red.
 
 ## After acceptance: the source actually lands
 

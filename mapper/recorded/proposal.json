@@ -92,5 +92,12 @@
    }
   },
   "notes": "Pipe-delimited export with day-first dotted dates, SKU- prefixed product ids, and short channel/region codes needing whitespace and case cleanup before mapping."
+ },
+ "approval": {
+  "status": "approved",
+  "by": "Burt Gardner",
+  "at": "2026-09-02T19:01:34+00:00",
+  "note": "verified against the Cobalt warranty spec",
+  "proposal_fingerprint": "c0f37e69c2751f27"
  }
 }

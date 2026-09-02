@@ -15,7 +15,9 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(ROOT, "incoming", "external")
-UA = "BI-Simulator research (https://github.com/bgard68/BI-Simulator)"
+# SEC requires a descriptive agent with a contact address and rejects the
+# parenthesised-URL form; the open-data portals accept anything.
+UA = "BI-Simulator research bgard68@gmail.com"
 ROWS = 400
 
 # (filename, publisher, url, native format, what it is)
