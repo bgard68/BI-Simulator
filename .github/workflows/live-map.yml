@@ -61,11 +61,14 @@ jobs:
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          # The CI identity deliberately holds NO subscription role: its only
+          # grant is read on one Key Vault secret, via the vault's data plane.
+          allow-no-subscriptions: true
       - name: Fetch the model credential from Key Vault
         if: ${{ vars.AZURE_CLIENT_ID != '' }}
         run: |
-          TOKEN=$(az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME || 'bisim-kv-41d09d' }}" --name claude-code-oauth-token --query value -o tsv)
+          VAULT="${{ vars.AZURE_KEYVAULT_NAME }}"
+          TOKEN=$(az keyvault secret show --id "https://${VAULT}.vault.azure.net/secrets/claude-code-oauth-token" --query value -o tsv)
           echo "::add-mask::$TOKEN"
           echo "CLAUDE_CODE_OAUTH_TOKEN=$TOKEN" >> "$GITHUB_ENV"
       - name: Generate the world and the unknown source
