@@ -254,3 +254,56 @@ class TestDeterminism(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPublicPOContract(unittest.TestCase):
+    """The second contract's gates must reject semantically wrong mappings
+    even though no CRM or catalog exists to check against."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, os.path.join(ROOT, "mapper"))
+        import public_po_lib
+        cls.lib = public_po_lib
+        cls.rec = os.path.join(ROOT, "mapper", "recorded", "external.json")
+
+    def test_state_list_is_real_ground_truth(self):
+        self.assertIn("VT", self.lib.US_STATES)
+        self.assertIn("PR", self.lib.US_STATES)
+        self.assertNotIn("EMEA", self.lib.US_STATES)
+        self.assertNotIn("ZZ", self.lib.US_STATES)
+        self.assertEqual(len(self.lib.US_STATES), 56)
+
+    def test_money_transform(self):
+        f = self.lib.apply_transforms
+        self.assertEqual(f("$49,500.00", ["money"], "amount", {}), 49500.0)
+        with self.assertRaises(self.lib.TransformError):
+            f("n/a", ["money"], "amount", {})
+
+    def test_missing_required_target_is_structural_failure(self):
+        p = {"format": "delimited", "delimiter": ",",
+             "columns": [{"source": "a", "target": "po_id", "transforms": []}]}
+        problems = self.lib.structural_check(p)
+        for field in ("po_date", "vendor_name", "amount", "region"):
+            self.assertTrue(any(field in m for m in problems), f"{field}: {problems}")
+
+    def test_region_map_to_non_state_rejected(self):
+        p = {"format": "delimited", "delimiter": ",", "columns": [
+                {"source": c, "target": t, "transforms": []} for c, t in
+                [("a", "po_id"), ("b", "po_date"), ("c", "vendor_name"),
+                 ("d", "amount"), ("e", "region")]],
+             "value_maps": {"region": {"X": "EMEA"}}}
+        self.assertTrue(any("non-state" in m for m in self.lib.structural_check(p)))
+
+    def test_unknown_format_rejected(self):
+        p = {"format": "parquet", "columns": [{"source": "a", "target": "po_id"}]}
+        self.assertTrue(any("format must be" in m for m in self.lib.structural_check(p)))
+
+    def test_recorded_external_run_is_all_correct(self):
+        if not os.path.exists(self.rec):
+            self.skipTest("no recorded external run")
+        with open(self.rec, encoding="utf-8") as f:
+            ex = json.load(f)
+        wrong = [r["file"] for r in ex["results"] if not r["correct"]]
+        self.assertEqual(wrong, [], f"wrong outcomes: {wrong}")
+        self.assertGreaterEqual(ex["refused"], 1, "a run with no refusals proves nothing")

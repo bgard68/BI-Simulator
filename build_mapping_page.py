@@ -21,6 +21,7 @@ SOURCE = os.path.join(ROOT, "incoming", "warranty_registrations.txt")
 RECORDED = os.path.join(ROOT, "mapper", "recorded", "proposal.json")
 BENCH = os.path.join(ROOT, "mapper", "recorded", "benchmark.json")
 SESSION = os.path.join(ROOT, "mapper", "recorded", "session.json")
+EXTERNAL = os.path.join(ROOT, "mapper", "recorded", "external.json")
 OUT = os.path.join(ROOT, "output", "mapping.html")
 REPO = "https://github.com/bgard68/BI-Simulator"
 
@@ -163,6 +164,43 @@ if os.path.exists(SESSION):
     }}
   }})();
   </script>"""
+
+# --- optional external-sources section ----------------------------------
+ext_html = ""
+if os.path.exists(EXTERNAL):
+    with open(EXTERNAL, encoding="utf-8") as f:
+        ex = json.load(f)
+    rows = ""
+    for r in ex["results"]:
+        verdict = ('<span class="pill pass">accepted</span>' if r["accepted"]
+                   else '<span class="pill fail">refused</span>')
+        mark = "&#10003;" if r["correct"] else "&#10007;"
+        detail = (f'{r["rows"]} rows conformed' if r["accepted"]
+                  else E(r["refusal_reasons"][0] if r["refusal_reasons"] else ""))
+        rows += (f'<tr><td class="mono">{E(r["format"])}</td>'
+                 f'<td>{E(r["publisher"])}</td>'
+                 f'<td>{verdict}</td>'
+                 f'<td class="detail">{detail}</td>'
+                 f'<td class="detail">{mark}</td></tr>')
+    ext_html = f"""
+  <section class="card">
+    <h2>5 &mdash; Real files, from real governments</h2>
+    <p class="csub">Everything above uses files this project generates. These do not:
+    they are fetched from public open-data portals in whatever format each publisher
+    natively serves, and gated against a second contract whose ground truth is
+    external fact &mdash; the actual list of US state codes, and the rule that one
+    purchase-order number cannot belong to two vendors.
+    <b>{ex["correct_outcomes"]}/{ex["files"]} correct outcomes</b>
+    ({ex["accepted"]} accepted, {ex["refused"]} correctly refused).</p>
+    <table>
+      <tr><th>Format</th><th>Publisher</th><th>Outcome</th><th>Detail</th><th></th></tr>
+      {rows}
+    </table>
+    <p class="csub" style="margin-top:10px">The three refusals are the point: those
+    files genuinely lack a line amount, a US state, or any notion of an order, and
+    the model declined to invent one. Reproduce with
+    <span class="mono">python fetch_external_sources.py &amp;&amp; python mapper/run_external.py</span>.</p>
+  </section>"""
 
 # --- optional benchmark section (published only if a run was recorded) ----
 bench_html = ""
@@ -354,6 +392,7 @@ page = f"""<!doctype html>
   </section>
 
 {bench_html}
+{ext_html}
 
   <section class="card">
     <h2>Run it yourself</h2>

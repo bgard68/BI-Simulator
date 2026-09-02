@@ -35,6 +35,9 @@ jobs:
           python build_mapping_page.py
       - name: Gate test suite (corrupted proposals must be rejected)
         run: python -m unittest discover -s tests -v
+      - name: External sources reachable (non-blocking)
+        continue-on-error: true
+        run: python fetch_external_sources.py
       - name: Assemble site
         run: |
           mkdir site

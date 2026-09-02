@@ -4,3 +4,4 @@ warehouse/
 output/
 mapper/runs/
 incoming/variant_*.txt
+incoming/external/

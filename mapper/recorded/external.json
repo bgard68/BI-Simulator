@@ -1,0 +1,177 @@
+{
+ "created_utc": "2026-09-02T14:15:26+00:00",
+ "backend": "claude-cli",
+ "files": 5,
+ "correct_outcomes": 5,
+ "accepted": 2,
+ "refused": 3,
+ "results": [
+  {
+   "file": "providence_purchase_orders.csv",
+   "publisher": "City of Providence, RI",
+   "format": "CSV",
+   "why": "purchase order lines with quantities, unit prices and vendor states",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1,
+   "rows": 400,
+   "gates": [
+    {
+     "gate": "G0 file parses in the proposed format",
+     "ok": true,
+     "detail": "400 record(s), 16 field(s)"
+    },
+    {
+     "gate": "G1 proposed source fields exist in the file",
+     "ok": true,
+     "detail": "header: ['district', 'po_number', 'po_line_nbr', 'po_date', 'line_description', 'quantity', 'unit_price', 'vendor']"
+    },
+    {
+     "gate": "G2 every record maps without transform errors",
+     "ok": true,
+     "detail": "400/400 mapped"
+    },
+    {
+     "gate": "G3 po_id present on every record",
+     "ok": true,
+     "detail": "400/400 present, 347 distinct"
+    },
+    {
+     "gate": "G4 dates ISO and within 1990-2035",
+     "ok": true,
+     "detail": "400 parsed, 400 in window"
+    },
+    {
+     "gate": "G5 amount numeric, non-negative, plausible",
+     "ok": true,
+     "detail": "400/400 numeric, max 7,208,311.00"
+    },
+    {
+     "gate": "G6 region is a real US state/territory code",
+     "ok": true,
+     "detail": "28 distinct, all valid (e.g. ['AL', 'AZ', 'CA', 'CT', 'DE'])"
+    },
+    {
+     "gate": "G7 each po_id carries one consistent vendor",
+     "ok": true,
+     "detail": "347 orders, 0 with conflicting vendors"
+    },
+    {
+     "gate": "G8 vendor_name reads as a name, not an id",
+     "ok": true,
+     "detail": "0/400 purely numeric"
+    }
+   ],
+   "refusal_reasons": []
+  },
+  {
+   "file": "vermont_purchase_orders.json",
+   "publisher": "State of Vermont",
+   "format": "JSON",
+   "why": "state purchase orders with vendor city/state",
+   "should_accept": true,
+   "accepted": true,
+   "correct": true,
+   "attempts": 1,
+   "rows": 400,
+   "gates": [
+    {
+     "gate": "G0 file parses in the proposed format",
+     "ok": true,
+     "detail": "400 record(s), 12 field(s)"
+    },
+    {
+     "gate": "G1 proposed source fields exist in the file",
+     "ok": true,
+     "detail": "header: ['business_unit', 'business_unit_descr', 'city', 'item_long_descr', 'line', 'merchandise_amt', 'po_date', 'po_id']"
+    },
+    {
+     "gate": "G2 every record maps without transform errors",
+     "ok": true,
+     "detail": "400/400 mapped"
+    },
+    {
+     "gate": "G3 po_id present on every record",
+     "ok": true,
+     "detail": "400/400 present, 192 distinct"
+    },
+    {
+     "gate": "G4 dates ISO and within 1990-2035",
+     "ok": true,
+     "detail": "400 parsed, 400 in window"
+    },
+    {
+     "gate": "G5 amount numeric, non-negative, plausible",
+     "ok": true,
+     "detail": "400/400 numeric, max 3,221,446.97"
+    },
+    {
+     "gate": "G6 region is a real US state/territory code",
+     "ok": true,
+     "detail": "26 distinct, all valid (e.g. ['CA', 'CO', 'CT', 'FL', 'GA'])"
+    },
+    {
+     "gate": "G7 each po_id carries one consistent vendor",
+     "ok": true,
+     "detail": "192 orders, 0 with conflicting vendors"
+    },
+    {
+     "gate": "G8 vendor_name reads as a name, not an id",
+     "ok": true,
+     "detail": "0/400 purely numeric"
+    }
+   ],
+   "refusal_reasons": []
+  },
+  {
+   "file": "lacity_invoices.tsv",
+   "publisher": "Los Angeles City Controller",
+   "format": "TSV",
+   "why": "invoice register: no line amount and no vendor state",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 2,
+   "rows": 0,
+   "gates": [],
+   "refusal_reasons": [
+    "required target 'po_date' must be mapped exactly once (mapped 0x)",
+    "required target 'amount' must be mapped exactly once (mapped 0x)",
+    "required target 'region' must be mapped exactly once (mapped 0x)"
+   ]
+  },
+  {
+   "file": "edmonton_purchase_orders.xml",
+   "publisher": "City of Edmonton, Canada",
+   "format": "XML",
+   "why": "dollar-value buckets instead of amounts; no PO id, no US state",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 2,
+   "rows": 0,
+   "gates": [],
+   "refusal_reasons": [
+    "required target 'po_id' must be mapped exactly once (mapped 0x)",
+    "required target 'amount' must be mapped exactly once (mapped 0x)",
+    "required target 'region' must be mapped exactly once (mapped 0x)"
+   ]
+  },
+  {
+   "file": "sec_edgar_filings.txt",
+   "publisher": "U.S. SEC EDGAR",
+   "format": "TXT (pipe)",
+   "why": "securities filing index - not purchase orders at all",
+   "should_accept": false,
+   "accepted": false,
+   "correct": true,
+   "attempts": 3,
+   "rows": 0,
+   "gates": [],
+   "refusal_reasons": [
+    "columns must be a non-empty list"
+   ]
+  }
+ ]
+}

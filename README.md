@@ -46,7 +46,18 @@ headers, codes, column order — including classes with decoy columns, quoted
 delimiters, hostile column names, and files that are deliberately
 **unmappable**, where the only correct outcome is refusal. Measured across
 **50 such files: 50/50 correct outcomes** — 43 of 43 mappable ones accepted
-(all on the first attempt), 7 of 7 unmappable ones refused. Details:
+(all on the first attempt), 7 of 7 unmappable ones refused.
+
+**And it works on files this project did not write.**
+`fetch_external_sources.py` pulls five real purchase-order exports from public
+government portals — Providence RI (CSV), Vermont (JSON), Edmonton (XML), LA
+City (TSV) and the SEC filing index (pipe-delimited TXT) — gated by a second
+contract whose ground truth is external fact: the real list of US state codes,
+and the rule that one purchase-order number cannot belong to two vendors.
+Result: **5/5 correct outcomes** — Providence and Vermont accepted on the first
+attempt, and the other three *correctly refused*, because they genuinely lack a
+line amount, a US state, or any notion of an order. Details:
+[docs/EXTERNAL_SOURCES.md](docs/EXTERNAL_SOURCES.md) and
 [docs/AGENTIC_MAPPING.md](docs/AGENTIC_MAPPING.md).
 
 ![How the 18 sources flatten into one table](flatten_map.svg)
@@ -62,6 +73,9 @@ delimiters, hostile column names, and files that are deliberately
 - **[docs/STAR_SCHEMA.md](docs/STAR_SCHEMA.md)** — the dimensional model
   hiding in the sources, the four join patterns (and the fan trap they
   avoid), what flattening costs, and how to map it all to Power BI.
+- **[docs/EXTERNAL_SOURCES.md](docs/EXTERNAL_SOURCES.md)** — the five real
+  government files, the second contract that gates them against external
+  fact, and the 5/5 result (2 accepted, 3 correctly refused).
 - **[docs/AGENTIC_MAPPING.md](docs/AGENTIC_MAPPING.md)** — the AI-in-the-loop
   stage: an LLM proposes the schema mapping for an unseen source, eleven
   deterministic gates decide, CI replays the decision on every push.

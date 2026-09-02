@@ -15,7 +15,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import mapping_lib as lib
+import mapping_lib
+import public_po_lib
+
+CONTRACTS = {"warranty": mapping_lib, "public_po": public_po_lib}
+lib = mapping_lib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -26,15 +30,21 @@ def main():
     ap.add_argument("--source", default=os.path.join(ROOT, "incoming", "warranty_registrations.txt"))
     ap.add_argument("--report", default=os.path.join(ROOT, "mapper", "recorded", "validation_report.md"))
     ap.add_argument("--out", default=os.path.join(ROOT, "warehouse", "warranty_conformed.csv"))
+    ap.add_argument("--contract", choices=sorted(CONTRACTS), default="warranty")
     args = ap.parse_args()
+
+    global lib
+    lib = CONTRACTS[args.contract]
 
     with open(args.proposal, encoding="utf-8") as f:
         recorded = json.load(f)
     proposal = recorded.get("proposal", recorded)
     meta = recorded.get("meta", {})
 
-    gates = [("S1-S4 structural: shape, coverage, whitelist, canonical maps",
-              True, "ok")]
+    label = ("S1-S4 structural: shape, coverage, whitelist, canonical maps"
+             if lib is mapping_lib else
+             "S structural: format, required coverage, whitelist, state maps")
+    gates = [(label, True, "ok")]
     problems = lib.structural_check(proposal)
     if problems:
         gates[0] = (gates[0][0], False, "; ".join(problems))
