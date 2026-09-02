@@ -615,21 +615,51 @@ function legendInto(host, items) {
 }
 
 /* ================= KPI row ================= */
+function monthlySeries() {
+  // one pass over the dimension-filtered rows -> a 12-point series per metric
+  const months = MONTHS_ALL.slice(-12);
+  const idx = new Map(months.map((m, i) => [m, i]));
+  const acc = months.map(() => ({ rev: 0, mg: 0, lines: 0, ret: 0,
+                                  orders: new Set(), npsSum: 0, npsN: 0 }));
+  const seenOrder = new Set();
+  for (const r of rowsFor({ range: [months[0] + "-01", END] })) {
+    const i = idx.get(r[iD].slice(0, 7));
+    if (i === undefined) continue;
+    const a = acc[i];
+    a.rev += r[iRV]; a.mg += r[iMG]; a.lines++; a.ret += r[iRT];
+    a.orders.add(r[iO]);
+    const key = r[iO];
+    if (!seenOrder.has(key)) {
+      seenOrder.add(key);
+      if (r[iNP] !== null && r[iNP] !== undefined) { a.npsSum += r[iNP]; a.npsN++; }
+    }
+  }
+  return {
+    rev: acc.map(a => a.rev),
+    mgPct: acc.map(a => a.rev ? a.mg / a.rev : 0),
+    orders: acc.map(a => a.orders.size),
+    aov: acc.map(a => a.orders.size ? a.rev / a.orders.size : 0),
+    retRate: acc.map(a => a.lines ? a.ret / a.lines : 0),
+    nps: acc.map(a => a.npsN ? a.npsSum / a.npsN : 0),
+  };
+}
+
 function renderKPIs() {
   const cur = kpiPack(rowsFor());
+  const series = monthlySeries();
   const pr = prevRange();
   const prev = pr ? kpiPack(rowsFor({ range: pr })) : null;
   const host = document.getElementById("kpis");
   host.textContent = "";
   const defs = [
-    ["Revenue", fmt$(cur.rev), prev && prev.rev ? (cur.rev - prev.rev) / prev.rev : null, true, true],
-    ["Gross margin", fmtPct(cur.mgPct), prev ? cur.mgPct - prev.mgPct : null, true, false, "pt"],
-    ["Orders", fmtInt(cur.orders), prev && prev.orders ? (cur.orders - prev.orders) / prev.orders : null, true],
-    ["Avg order value", fmt$(cur.aov), prev && prev.aov ? (cur.aov - prev.aov) / prev.aov : null, true],
-    ["Return rate", fmtPct(cur.retRate), prev ? cur.retRate - prev.retRate : null, false, false, "pt"],
-    ["Avg NPS", cur.nps === null ? "–" : cur.nps.toFixed(1), prev && prev.nps !== null && cur.nps !== null ? cur.nps - prev.nps : null, true, false, "abs"],
+    ["Revenue", fmt$(cur.rev), prev && prev.rev ? (cur.rev - prev.rev) / prev.rev : null, true, "rev"],
+    ["Gross margin", fmtPct(cur.mgPct), prev ? cur.mgPct - prev.mgPct : null, true, "mgPct", "pt"],
+    ["Orders", fmtInt(cur.orders), prev && prev.orders ? (cur.orders - prev.orders) / prev.orders : null, true, "orders"],
+    ["Avg order value", fmt$(cur.aov), prev && prev.aov ? (cur.aov - prev.aov) / prev.aov : null, true, "aov"],
+    ["Return rate", fmtPct(cur.retRate), prev ? cur.retRate - prev.retRate : null, false, "retRate", "pt"],
+    ["Avg NPS", cur.nps === null ? "–" : cur.nps.toFixed(1), prev && prev.nps !== null && cur.nps !== null ? cur.nps - prev.nps : null, true, "nps", "abs"],
   ];
-  for (const [lbl, val, delta, upGood, spark, unit] of defs) {
+  for (const [lbl, val, delta, upGood, key, unit] of defs) {
     const tile = document.createElement("div"); tile.className = "tile";
     const l = document.createElement("div"); l.className = "tl"; l.textContent = lbl;
     const v = document.createElement("div"); v.className = "tv"; v.textContent = val;
@@ -651,17 +681,21 @@ function renderKPIs() {
       d.textContent = state.preset === "all" ? "full history" : "no prior data";
     }
     tile.appendChild(d);
-    if (spark) {
-      const months = MONTHS_ALL.slice(-12);
-      const mm = byMonth(rowsFor({ range: [MONTHS_ALL[0] + "-01", END], ignore: null }));
-      const pts = months.map(m => mm.get(m) || 0);
-      const w = 120, h = 26, mx = Math.max(...pts, 1);
-      const svg = el("svg", { width: w, height: h, viewBox: `0 0 ${w} ${h}`, "aria-hidden": "true" });
-      const path = pts.map((p, i) =>
-        `${i ? "L" : "M"}${(i / (pts.length - 1)) * (w - 8) + 2},${h - 3 - (p / mx) * (h - 8)}`).join("");
-      el("path", { d: path, fill: "none", stroke: css("--axis"), "stroke-width": 1.6 }, svg);
-      const lx = (w - 8) + 2, ly = h - 3 - (pts[pts.length - 1] / mx) * (h - 8);
-      el("circle", { cx: lx, cy: ly, r: 3, fill: S(1), stroke: css("--surface"), "stroke-width": 1.5 }, svg);
+    const pts = series[key];
+    if (pts && pts.some(v => v)) {
+      const w = 120, h = 26, pad = 3;
+      const lo = Math.min(...pts), hi = Math.max(...pts);
+      const span = (hi - lo) || Math.abs(hi) || 1;
+      const x = i => (i / (pts.length - 1)) * (w - 8) + 2;
+      const y = v => h - pad - ((v - lo) / span) * (h - 2 * pad - 2);
+      const svg = el("svg", { width: w, height: h, viewBox: `0 0 ${w} ${h}`,
+        "aria-hidden": "true" });
+      el("path", { d: pts.map((p, i) => `${i ? "L" : "M"}${x(i)},${y(p)}`).join(""),
+        fill: "none", stroke: css("--axis"), "stroke-width": 1.6,
+        "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+      const last = pts.length - 1;
+      el("circle", { cx: x(last), cy: y(pts[last]), r: 3, fill: S(1),
+        stroke: css("--surface"), "stroke-width": 1.5 }, svg);
       tile.appendChild(svg);
     }
     host.appendChild(tile);
