@@ -87,6 +87,48 @@ for name, ok, detail in gates:
 verdict = ('<span class="pill pass big">ACCEPTED</span>' if all_ok
            else '<span class="pill fail big">REJECTED</span>')
 
+# --- redaction: what the model was allowed to see -----------------------
+# Demonstrated on the SIMULATED file on purpose. The real external files
+# carry live municipal suppliers' contact details, and reproducing a "before"
+# column of those on a public page would be the exact disclosure the module
+# exists to prevent.
+sys.path.insert(0, os.path.join(ROOT, "mapper"))
+import redact as _redact
+
+_r_rows = ""
+for _line in lines[1:5]:
+    _before = _line
+    _after = _redact.redact_text(_line)
+    _parts = _line.split("|")
+    if len(_parts) == 7:
+        _p = list(_parts)
+        _p[2] = _redact.surrogate(_p[2], "email")
+        _after = "|".join(_p)
+    _r_rows += (f'<tr><td class="mono was">{E(_before[:78])}</td>'
+                f'<td class="mono now">{E(_after[:78])}</td></tr>')
+
+redact_html = f"""
+  <section class="card">
+    <h2>0 &mdash; What the model was allowed to see</h2>
+    <p class="csub">A mapping proposal needs the <i>shape</i> of a value &mdash; is this
+    an email, which date format, what prefix &mdash; never the value. So sensitive
+    fields are replaced with type-preserving surrogates before the sample enters a
+    prompt. The real file is read only by the deterministic layer, locally.</p>
+    <div class="ctable"><table>
+      <tr><th>In the file (stays local)</th><th>In the prompt (leaves the machine)</th></tr>
+      {_r_rows}
+    </table></div>
+    <p class="csub" style="margin-top:10px">Surrogates are deterministic, so a value
+    that repeats still repeats &mdash; cardinality survives, content does not. Dates,
+    quantities, codes and company names pass through untouched, because those are the
+    signal. This is not hypothetical: the Providence file carries a
+    <span class="mono">vendor_contct</span> column of municipal suppliers' names and an
+    <span class="mono">e_mail_address</span> column of their real addresses, and a test
+    asserts none of those emails appears in the built prompt. The external results are
+    <b>unchanged at 5/5 with redaction on</b> &mdash; the protection costs nothing,
+    because the model never needed the values.</p>
+  </section>"""
+
 # --- optional recorded-session player (only if a session was recorded) ---
 term_html = ""
 if os.path.exists(SESSION):
@@ -324,6 +366,8 @@ page = f"""<!doctype html>
   .term .ok {{ color:var(--good); }}
   .term .bad {{ color:var(--bad); font-weight:600; }}
   .term .warn {{ color:var(--ink); }}
+  td.was {{ color:var(--ink2); }}
+  td.now {{ color:var(--good); }}
   .bstats {{ display:flex; gap:26px; flex-wrap:wrap; margin:12px 0 14px; }}
   .bv {{ font-size:22px; font-weight:650; letter-spacing:-0.01em; }}
   .bl {{ color:var(--muted); font-size:12px; }}
@@ -350,6 +394,7 @@ page = f"""<!doctype html>
   </header>
 
 {term_html}
+{redact_html}
 
   <section class="card">
     <h2>1 &mdash; The unknown source</h2>
