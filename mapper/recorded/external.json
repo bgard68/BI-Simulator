@@ -1,10 +1,12 @@
 {
- "created_utc": "2026-09-02T19:00:27+00:00",
+ "created_utc": "2026-09-02T19:39:30+00:00",
  "backend": "claude-cli",
  "files": 5,
  "correct_outcomes": 5,
  "accepted": 2,
  "refused": 3,
+ "cost_usd": 1.5216,
+ "output_tokens": 10551,
  "results": [
   {
    "file": "providence_purchase_orders.csv",
@@ -40,7 +42,7 @@
     {
      "gate": "G4 dates ISO and within 1990-2035",
      "ok": true,
-     "detail": "400 parsed, 400 in window"
+     "detail": "400 parsed, 400 within 1990-2035"
     },
     {
      "gate": "G5 amount numeric, non-negative, plausible",
@@ -55,7 +57,7 @@
     {
      "gate": "G7 each po_id carries one consistent vendor",
      "ok": true,
-     "detail": "347 orders, 0 with conflicting vendors"
+     "detail": "347 groups, 0 with conflicting vendor_name"
     },
     {
      "gate": "G8 vendor_name reads as a name, not an id",
@@ -63,7 +65,14 @@
      "detail": "0/400 purely numeric"
     }
    ],
-   "refusal_reasons": []
+   "refusal_reasons": [],
+   "telemetry": {
+    "attempts": 1,
+    "duration_ms": 17550,
+    "cost_usd": 0.18794699999999998,
+    "input_tokens": 2,
+    "output_tokens": 1137
+   }
   },
   {
    "file": "vermont_purchase_orders.json",
@@ -99,7 +108,7 @@
     {
      "gate": "G4 dates ISO and within 1990-2035",
      "ok": true,
-     "detail": "400 parsed, 400 in window"
+     "detail": "400 parsed, 400 within 1990-2035"
     },
     {
      "gate": "G5 amount numeric, non-negative, plausible",
@@ -114,7 +123,7 @@
     {
      "gate": "G7 each po_id carries one consistent vendor",
      "ok": true,
-     "detail": "192 orders, 0 with conflicting vendors"
+     "detail": "192 groups, 0 with conflicting vendor_name"
     },
     {
      "gate": "G8 vendor_name reads as a name, not an id",
@@ -122,7 +131,14 @@
      "detail": "0/400 purely numeric"
     }
    ],
-   "refusal_reasons": []
+   "refusal_reasons": [],
+   "telemetry": {
+    "attempts": 1,
+    "duration_ms": 9245,
+    "cost_usd": 0.19062300000000001,
+    "input_tokens": 2,
+    "output_tokens": 516
+   }
   },
   {
    "file": "lacity_invoices.tsv",
@@ -136,9 +152,17 @@
    "rows": 0,
    "gates": [],
    "refusal_reasons": [
+    "required target 'po_date' must be mapped exactly once (mapped 0x)",
     "required target 'amount' must be mapped exactly once (mapped 0x)",
     "required target 'region' must be mapped exactly once (mapped 0x)"
-   ]
+   ],
+   "telemetry": {
+    "attempts": 2,
+    "duration_ms": 45018,
+    "cost_usd": 0.386296,
+    "input_tokens": 4,
+    "output_tokens": 2848
+   }
   },
   {
    "file": "edmonton_purchase_orders.xml",
@@ -155,7 +179,14 @@
     "required target 'po_id' must be mapped exactly once (mapped 0x)",
     "required target 'amount' must be mapped exactly once (mapped 0x)",
     "required target 'region' must be mapped exactly once (mapped 0x)"
-   ]
+   ],
+   "telemetry": {
+    "attempts": 2,
+    "duration_ms": 25183,
+    "cost_usd": 0.357921,
+    "input_tokens": 4,
+    "output_tokens": 1434
+   }
   },
   {
    "file": "sec_edgar_filings.txt",
@@ -169,8 +200,17 @@
    "rows": 0,
    "gates": [],
    "refusal_reasons": [
-    "columns must be a non-empty list"
-   ]
+    "required target 'po_id' must be mapped exactly once (mapped 0x)",
+    "required target 'amount' must be mapped exactly once (mapped 0x)",
+    "required target 'region' must be mapped exactly once (mapped 0x)"
+   ],
+   "telemetry": {
+    "attempts": 2,
+    "duration_ms": 62087,
+    "cost_usd": 0.398795,
+    "input_tokens": 4,
+    "output_tokens": 4616
+   }
   }
  ]
 }

@@ -82,6 +82,7 @@ def main():
             "should_accept": should_accept, "accepted": accepted,
             "correct": correct, "attempts": len(attempts), "rows": rows,
             "gates": gates, "refusal_reasons": reasons[:4],
+            "telemetry": pm.totals(attempts),
         })
 
     summary = {
@@ -91,6 +92,10 @@ def main():
         "correct_outcomes": sum(1 for r in results if r["correct"]),
         "accepted": sum(1 for r in results if r["accepted"]),
         "refused": sum(1 for r in results if not r["accepted"]),
+        "cost_usd": round(sum((r["telemetry"].get("cost_usd") or 0)
+                              for r in results), 4),
+        "output_tokens": sum((r["telemetry"].get("output_tokens") or 0)
+                             for r in results),
         "results": results,
     }
     path = os.path.join(RUNS, "external.json")

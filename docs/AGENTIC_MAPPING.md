@@ -64,6 +64,24 @@ samples — the external results are **5/5 with redaction on**, so the
 protection costs nothing in mapping quality. Opting out is explicit
 (`--no-redact`) and announces itself in the run log.
 
+**What redaction does not catch**, stated plainly because a redactor with
+undocumented limits is worse than none: person names in columns with no
+telling name (`signed_by`, `owner`), PII embedded in free text, non-US phone
+and government-id formats, keys in JSON/XML whose *values* look innocuous,
+indirect identifiers (a rare title plus a small city), and anything encoded.
+There is no NER here — names are unbounded strings and regexes cannot find
+them. The mitigation is architectural rather than clever: only a sample is
+ever sent, that sample is redacted, and the full file never leaves the
+machine. Where even that is unacceptable, the `openai-compatible` backend
+points at a model inside your own perimeter and nothing leaves at all. The
+full list is in the `mapper/redact.py` docstring.
+
+**What each run costs is measured, not estimated.** Every model call records
+its own duration, token counts and cost from the provider's accounting into
+the proposal's `meta.totals`, and the run prints it live
+(`6.9s in=2 out=374 tokens $0.1666`). A run that starts costing more, or
+retrying more, is visible rather than inferred.
+
 ## The vote: `mapper/validate_mapping.py`
 
 Deterministic, dependency-free Python. It applies the proposal to the **full

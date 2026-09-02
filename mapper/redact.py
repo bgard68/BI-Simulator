@@ -14,6 +14,35 @@ low-cardinality without seeing what is in it.
 Detection is deliberately blunt: content patterns plus column-name hints, both
 conservative in the direction of over-redacting. A missed pattern is a
 disclosure; an over-redacted column costs nothing but a slightly duller sample.
+
+WHAT THIS DOES NOT CATCH -- stated plainly, because a redactor whose limits
+are undocumented is worse than none:
+
+  * Person names with no telling column name. `contact`, `buyer`, `attn` are
+    caught by hint; `signed_by`, `owner`, `requested_by` are not. There is no
+    NER here -- names are unbounded strings and pattern matching cannot find
+    them. A real deployment pairs this with a classifier (Azure AI Language,
+    Presidio) or an allow-list of columns cleared for sampling.
+  * PII embedded in free text. A `description` column reading "call Jane at
+    the Elm St site" keeps the name and the street; only the standalone
+    patterns below (email, phone, SSN, card, IP) are found inside prose.
+  * Non-US formats. Phone, postal and government-id patterns are US-shaped;
+    a UK NIN or an IBAN in an unhinted column passes through.
+  * Structured formats get content matching only. For JSON and XML the
+    positional column-hint pass does not apply, so a `contactName` key is
+    redacted only if its *value* matches a pattern.
+  * Indirect identifiers. A rare job title plus a small city can identify
+    someone without any single field looking sensitive. Nothing here reasons
+    about combinations.
+  * Anything encoded. Base64, URL-encoded or hashed payloads are opaque to
+    regexes.
+
+The mitigation for all of the above is the same and is architectural rather
+than clever: only a *sample* is ever sent, the sample is redacted, and the
+full file never leaves the machine. Where that is still not acceptable --
+health data, anything under contractual data-residency terms -- the
+`openai-compatible` backend points at a model inside your own perimeter
+(Azure OpenAI in your tenant, or a local Ollama), and nothing leaves at all.
 """
 import hashlib
 import os

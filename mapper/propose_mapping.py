@@ -20,6 +20,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.request
 from datetime import datetime, timezone
 
@@ -202,7 +203,16 @@ def call_claude_cli(prompt):
     model = envelope.get("model") or envelope.get("modelUsage") or "claude-cli"
     if isinstance(model, dict):
         model = "/".join(model.keys()) or "claude-cli"
-    return reply, str(model)
+    u = envelope.get("usage") or {}
+    stats = {
+        "duration_ms": envelope.get("duration_ms"),
+        "cost_usd": envelope.get("total_cost_usd"),
+        "input_tokens": u.get("input_tokens"),
+        "output_tokens": u.get("output_tokens"),
+        "cache_read_tokens": u.get("cache_read_input_tokens"),
+        "cache_write_tokens": u.get("cache_creation_input_tokens"),
+    }
+    return reply, str(model), stats
 
 
 def call_openai_compatible(prompt):
@@ -215,9 +225,29 @@ def call_openai_compatible(prompt):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {os.environ.get('MAPPER_API_KEY', 'none')}",
     })
+    t0 = time.monotonic()
     with urllib.request.urlopen(req, timeout=180) as resp:
         body = json.load(resp)
-    return body["choices"][0]["message"]["content"], model
+    u = body.get("usage") or {}
+    stats = {
+        "duration_ms": int((time.monotonic() - t0) * 1000),
+        "cost_usd": None,                      # provider-specific; not assumed
+        "input_tokens": u.get("prompt_tokens"),
+        "output_tokens": u.get("completion_tokens"),
+    }
+    return body["choices"][0]["message"]["content"], model, stats
+
+
+def totals(attempts):
+    """Roll per-attempt telemetry into one line. What a run actually cost --
+    measured from the provider's own accounting, not estimated."""
+    def s(key):
+        vals = [a.get("stats", {}).get(key) for a in attempts]
+        vals = [v for v in vals if isinstance(v, (int, float))]
+        return sum(vals) if vals else None
+    return {"attempts": len(attempts), "duration_ms": s("duration_ms"),
+            "cost_usd": s("cost_usd"), "input_tokens": s("input_tokens"),
+            "output_tokens": s("output_tokens")}
 
 
 def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False,
@@ -236,11 +266,16 @@ def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False,
                 cols = ", ".join(f"{c} ({k})" for c, k in sorted(hinted.items()))
                 say(f"  redacted before sending: {cols or 'content-matched values'}")
         say(f"attempt {attempt}: calling model via {backend} ...")
-        reply, model = call(prompt)
+        reply, model, stats = call(prompt)
+        if stats.get("cost_usd") is not None or stats.get("output_tokens"):
+            say(f"  {stats.get('duration_ms', 0) / 1000:.1f}s"
+                f"  in={stats.get('input_tokens') or 0}"
+                f" out={stats.get('output_tokens') or 0} tokens"
+                + (f"  ${stats['cost_usd']:.4f}" if stats.get("cost_usd") else ""))
         try:
             proposal = extract_json(reply)
         except ValueError as e:
-            attempts.append({"attempt": attempt, "model": model,
+            attempts.append({"attempt": attempt, "model": model, "stats": stats,
                              "outcome": f"unparseable: {e}"})
             feedback = f"Reply was not parseable JSON: {e}"
             continue
@@ -252,6 +287,7 @@ def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False,
             failed = [f"{name}: {detail}" for name, ok, detail in gates if not ok]
         outcome = "accepted" if not problems and not failed else "rejected"
         attempts.append({"attempt": attempt, "model": model, "outcome": outcome,
+                         "stats": stats,
                          "structural_problems": problems, "failed_gates": failed})
         if outcome == "accepted":
             os.makedirs(os.path.dirname(out), exist_ok=True)
@@ -261,6 +297,7 @@ def run_propose(source, out, backend="claude-cli", max_attempts=3, quiet=False,
                     "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "source_file": os.path.relpath(source, ROOT).replace(os.sep, "/"),
                     "redaction": dict(LAST_REDACTION),
+                    "totals": totals(attempts),
                     "attempts": attempts,
                 }, "proposal": proposal}, f, indent=1)
             say(f"accepted on attempt {attempt} -> {out}")

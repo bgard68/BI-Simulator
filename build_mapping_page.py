@@ -238,7 +238,12 @@ if os.path.exists(EXTERNAL):
       <tr><th>Format</th><th>Publisher</th><th>Outcome</th><th>Detail</th><th></th></tr>
       {rows}
     </table>
-    <p class="csub" style="margin-top:10px">The three refusals are the point: those
+    <p class="csub" style="margin-top:10px">Cost is measured, not estimated: this
+    whole run &mdash; five files, {ex.get("results") and sum(r.get("telemetry", {}).get("attempts") or 0 for r in ex["results"])} model
+    calls including the retries on the refusals &mdash; came to
+    <b>${ex.get("cost_usd", 0):.2f}</b> and {ex.get("output_tokens", 0):,} output
+    tokens, recorded per call from the provider's own accounting.</p>
+    <p class="csub">The three refusals are the point: those
     files genuinely lack a line amount, a US state, or any notion of an order, and
     the model declined to invent one. Reproduce with
     <span class="mono">python fetch_external_sources.py &amp;&amp; python mapper/run_external.py</span>.</p>
