@@ -46,12 +46,13 @@ permissions:
 jobs:
   propose-and-gate:
     runs-on: ${{ inputs.runner }}
-    defaults:
-      run:
-        shell: bash          # Git Bash on a Windows self-hosted runner
+    # No shell default: every shared step is a single portable `python ...`
+    # command, so this runs identically on a Linux runner and a Windows one.
+    # (Pinning `shell: bash` on Windows selects WSL bash, which need not exist.)
     steps:
       - name: Check a credential path is configured
         if: ${{ inputs.runner != 'self-hosted' }}
+        shell: bash
         env:
           TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
@@ -83,46 +84,17 @@ jobs:
           allow-no-subscriptions: true
       - name: Fetch the model credential from Key Vault
         if: ${{ inputs.runner != 'self-hosted' && vars.AZURE_CLIENT_ID != '' }}
+        shell: bash
         run: |
           VAULT="${{ vars.AZURE_KEYVAULT_NAME }}"
           TOKEN=$(az keyvault secret show --id "https://${VAULT}.vault.azure.net/secrets/claude-code-oauth-token" --query value -o tsv)
           echo "::add-mask::$TOKEN"
           echo "CLAUDE_CODE_OAUTH_TOKEN=$TOKEN" >> "$GITHUB_ENV"
-      - name: Generate the world and the unknown source
-        env:
-          SEED: ${{ inputs.seed }}
-        run: |
-          python generate_sources.py
-          if [ -n "$SEED" ]; then
-            python generate_unknown_source.py --seed "$SEED"
-          else
-            python generate_unknown_source.py
-          fi
-      - name: Live propose (model gets a voice)
+      - name: Live run - generate, propose, gate
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ env.CLAUDE_CODE_OAUTH_TOKEN || secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           SEED: ${{ inputs.seed }}
-        run: |
-          if [ -n "$SEED" ]; then
-            python mapper/propose_mapping.py --backend claude-cli \
-              --source "incoming/variant_${SEED}.txt" \
-              --out "mapper/runs/variant_${SEED}.json"
-          else
-            python mapper/propose_mapping.py --backend claude-cli
-          fi
-      - name: Deterministic gates (the vote)
-        env:
-          SEED: ${{ inputs.seed }}
-        run: |
-          if [ -n "$SEED" ]; then
-            python mapper/validate_mapping.py \
-              --proposal "mapper/runs/variant_${SEED}.json" \
-              --source "incoming/variant_${SEED}.txt" \
-              --report "mapper/runs/variant_${SEED}_report.md" \
-              --out "mapper/runs/variant_${SEED}_conformed.csv"
-          else
-            python mapper/validate_mapping.py
-          fi
+        run: python mapper/live_run.py
       - name: Build the evidence page (canonical runs only)
         if: ${{ inputs.seed == '' }}
         run: python build_mapping_page.py
@@ -138,6 +110,7 @@ jobs:
           if-no-files-found: ignore
       - name: Commit the new recorded run
         if: ${{ inputs.record && inputs.seed == '' }}
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
