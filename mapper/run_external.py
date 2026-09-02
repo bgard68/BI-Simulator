@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import propose_mapping as pm
-import public_po_lib
+import contract_lib
 import validate_mapping  # noqa: F401  (kept importable for parity)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,7 +46,7 @@ def main():
     ap.add_argument("--publish", action="store_true")
     args = ap.parse_args()
 
-    pm.lib = public_po_lib               # drive the public-PO contract
+    pm.lib = contract_lib.Contract(contract_lib.load("public_po"))  # config-driven
     os.makedirs(RUNS, exist_ok=True)
     results = []
 
@@ -63,7 +63,7 @@ def main():
         if accepted:
             with open(out, encoding="utf-8") as f:
                 proposal = json.load(f)["proposal"]
-            g, conformed = public_po_lib.apply_and_gate(proposal, src)
+            g, conformed = pm.lib.apply_and_gate(proposal, src)
             gates = [{"gate": n, "ok": ok, "detail": str(d)} for n, ok, d in g]
             rows = len(conformed)
         else:

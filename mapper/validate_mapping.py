@@ -17,8 +17,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mapping_lib
 import public_po_lib
+import contract_lib
 
-CONTRACTS = {"warranty": mapping_lib, "public_po": public_po_lib}
+CONTRACTS = {"warranty": mapping_lib, "public_po_py": public_po_lib}
+for _n in contract_lib.available():
+    CONTRACTS[_n] = contract_lib.Contract(contract_lib.load(_n))
 lib = mapping_lib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

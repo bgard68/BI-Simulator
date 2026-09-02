@@ -1,0 +1,114 @@
+# Public purchase orders -- real exports from government open-data portals.
+#
+# This file IS the contract. No Python was written to support it: the gate
+# primitives in mapper/contract_lib.py are generic, and everything domain
+# specific -- which fields matter, which values are legal, what counts as
+# ground truth, where the thresholds sit -- is declared here.
+#
+#   python mapper/propose_mapping.py --contract public_po --source <file>
+
+[contract]
+description = "purchase-order line data published by a public body"
+formats = ["delimited", "json", "xml"]
+
+# ---------------------------------------------------------------- fields
+[fields.po_id]
+type = "text"
+required = true
+desc = "purchase order / contract number"
+
+[fields.po_date]
+type = "date"
+required = true
+desc = "date of the order, conformed to ISO"
+
+[fields.vendor_name]
+type = "text"
+required = true
+desc = "supplier / vendor name"
+
+[fields.amount]
+type = "number"
+required = true
+desc = "monetary value on the line, in the file's own currency"
+
+[fields.region]
+type = "state"
+required = true
+value_set = "us_states"
+desc = "US state/territory code of the vendor (2 letters)"
+
+[fields.line_no]
+type = "int"
+required = false
+desc = "line number within the order"
+
+[fields.quantity]
+type = "number"
+required = false
+desc = "units ordered"
+
+[fields.description]
+type = "text"
+required = false
+desc = "what was ordered"
+
+[fields.city]
+type = "text"
+required = false
+desc = "vendor city"
+
+# ------------------------------------------------------------ value sets
+# Independent fact, not something this project defines. A mapping cannot
+# satisfy it by accident.
+[value_sets]
+us_states = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+  "VA","WA","WV","WI","WY","DC","AS","GU","MP","PR","VI",
+]
+
+# ----------------------------------------------------------------- gates
+# Applied to the whole file, in order, after the proposal is applied.
+[[gates]]
+check = "present"
+field = "po_id"
+unique = false
+label = "po_id present on every record"
+
+[[gates]]
+check = "date_window"
+field = "po_date"
+min = "1990-01-01"
+max = "2035-12-31"
+label = "dates ISO and within 1990-2035"
+
+[[gates]]
+check = "numeric_range"
+field = "amount"
+min = 0
+max = 1e10
+label = "amount numeric, non-negative, plausible"
+
+[[gates]]
+check = "value_set"
+field = "region"
+value_set = "us_states"
+label = "region is a real US state/territory code"
+
+# One purchase-order number cannot belong to two vendors. A mapping that
+# grabbed the wrong column for either field breaks this without any
+# external reference being needed.
+[[gates]]
+check = "row_consistency"
+field = "vendor_name"
+key_field = "po_id"
+max_conflict_rate = 0.01
+label = "each po_id carries one consistent vendor"
+
+[[gates]]
+check = "not_numeric"
+field = "vendor_name"
+max_rate = 0.01
+label = "vendor_name reads as a name, not an id"

@@ -1,0 +1,87 @@
+# Invoice registers -- an accounts-payable extract, not purchase-order lines.
+#
+# This contract exists to make one point: **adding a domain is a file, not a
+# deploy.** No Python was written for it. The LA City Controller's extract is
+# correctly REFUSED by contracts/public_po.toml, because it carries no line
+# amount and no vendor state -- and is correctly ACCEPTED here, because an
+# invoice register is a different thing with different obligations.
+#
+# The lesson is that "refused" was never a judgement about the file's
+# quality. It meant "this does not satisfy the contract you asked about."
+#
+#   python mapper/propose_mapping.py --contract invoice_register \
+#     --source incoming/external/lacity_invoices.tsv
+
+[contract]
+description = "accounts-payable invoice register: who was paid, against which order, when"
+formats = ["delimited", "json", "xml"]
+
+# ---------------------------------------------------------------- fields
+[fields.invoice_id]
+type = "text"
+required = true
+desc = "invoice number as issued by the vendor"
+
+[fields.vendor_name]
+type = "text"
+required = true
+desc = "supplier / vendor name"
+
+[fields.invoice_date]
+type = "date"
+required = true
+desc = "date on the invoice, conformed to ISO"
+
+[fields.po_id]
+type = "text"
+required = false
+desc = "purchase order this invoice bills against, if any"
+
+[fields.payment_date]
+type = "date"
+required = false
+desc = "date the payment cleared"
+
+[fields.vendor_id]
+type = "text"
+required = false
+desc = "the paying body's internal id for the vendor"
+
+[fields.department]
+type = "text"
+required = false
+desc = "department or cost centre charged"
+
+[value_sets]
+
+# ----------------------------------------------------------------- gates
+# Note what is NOT here: no amount range, no US-state check. An invoice
+# register need not carry either. The gates assert what this domain can
+# actually promise.
+[[gates]]
+check = "present"
+field = "invoice_id"
+unique = false
+label = "invoice_id present on every record"
+
+[[gates]]
+check = "date_window"
+field = "invoice_date"
+min = "1990-01-01"
+max = "2035-12-31"
+label = "invoice dates ISO and within 1990-2035"
+
+# The consistency gate still bites: one invoice number cannot have been
+# issued by two different vendors.
+[[gates]]
+check = "row_consistency"
+field = "vendor_name"
+key_field = "invoice_id"
+max_conflict_rate = 0.02
+label = "each invoice_id carries one consistent vendor"
+
+[[gates]]
+check = "not_numeric"
+field = "vendor_name"
+max_rate = 0.01
+label = "vendor_name reads as a name, not an id"

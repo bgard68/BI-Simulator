@@ -28,7 +28,13 @@ import mapping_lib
 import public_po_lib
 import redact
 
-CONTRACTS = {"warranty": mapping_lib, "public_po": public_po_lib}
+import contract_lib
+
+# Hand-written contracts, plus every contracts/*.toml discovered at startup.
+# A new domain is a config file: nothing here needs editing to add one.
+CONTRACTS = {"warranty": mapping_lib, "public_po_py": public_po_lib}
+for _n in contract_lib.available():
+    CONTRACTS[_n] = contract_lib.Contract(contract_lib.load(_n))
 lib = mapping_lib                      # default; --contract swaps it
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -98,6 +104,12 @@ FILE SAMPLE ({name}, {total} record(s) total; excerpt):
 LAST_REDACTION = {}     # populated by build_sample, reported by the caller
 
 
+def is_warranty():
+    """The warranty contract has its own prompt (fixed delimiter, no format
+    discovery); every other contract uses the general one."""
+    return lib is mapping_lib
+
+
 def build_sample(source, no_redact=False):
     """An excerpt of the file for the prompt -- REDACTED unless explicitly
     disabled. Line-based for delimited files; character-based for JSON/XML,
@@ -111,7 +123,7 @@ def build_sample(source, no_redact=False):
     with open(source, encoding="utf-8", errors="replace") as f:
         text = f.read()
     rows = text.splitlines()
-    if lib is public_po_lib and len(rows) < 5:      # single-line json/xml
+    if not is_warranty() and len(rows) < 5:         # single-line json/xml
         sample, total = text[:6000], f"~{len(text)//1000}KB of"
     else:
         total = max(len(rows) - 1, 0)
@@ -163,7 +175,7 @@ def build_prompt(source, feedback="", no_redact=False):
     if feedback:
         fb = ("\nYOUR PREVIOUS PROPOSAL FAILED THESE DETERMINISTIC GATES -- "
               "fix the proposal accordingly:\n" + feedback + "\n")
-    template = PROMPT_PUBLIC_PO if lib is public_po_lib else PROMPT
+    template = PROMPT if is_warranty() else PROMPT_PUBLIC_PO
     return template.format(
         contract=json.dumps(lib.TARGET_FIELDS, indent=1),
         transforms=lib.TRANSFORMS_DOC,

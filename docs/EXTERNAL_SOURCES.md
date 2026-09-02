@@ -34,6 +34,27 @@ network, the Open Contracting registry) publishes newline-delimited JSON, so
 rather than convert a file and call it external, JSONL is left to the
 simulated variant classes, which cover it honestly.
 
+## Contracts are configuration, not code
+
+Onboarding a domain should not require a deploy. `mapper/contract_lib.py`
+holds only *generic gate primitives* — `present`, `date_window`,
+`numeric_range`, `value_set`, `lookup_coverage`, `reference_agreement`,
+`row_consistency`, `not_numeric` — and every domain-specific decision lives
+in `contracts/<name>.toml`: which fields are required, what values are legal,
+which reference is ground truth, where the thresholds sit. `--contract`
+discovers whatever is on disk.
+
+The proof is `contracts/invoice_register.toml`. LA City's file is
+**refused** by `public_po` (no line amount, no vendor state) and **accepted**
+by `invoice_register` — a different domain with different obligations —
+and not one line of Python was written for it. That also reframes the
+refusals below: "refused" never meant the file was bad, only that it did not
+satisfy *the contract that was asked about*.
+
+A test asserts the TOML `public_po` reaches the same verdicts as the original
+hand-written `public_po_lib.py`, which is kept as the reference
+implementation.
+
 ## The second contract
 
 Real files cannot be gated the way the warranty file is: Providence's vendors

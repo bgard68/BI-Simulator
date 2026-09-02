@@ -410,3 +410,64 @@ class TestHumanApproval(unittest.TestCase):
         self.assertEqual(r.returncode, 1, "unapproved mapping was allowed to land")
         self.assertIn("H1", r.stdout)
         os.remove(tmp)
+
+
+class TestContractRegistry(unittest.TestCase):
+    """A contract is configuration. Adding a domain must need no Python."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, os.path.join(ROOT, "mapper"))
+        import contract_lib
+        cls.cl = contract_lib
+        cls.ext = os.path.join(ROOT, "incoming", "external")
+        cls.runs = os.path.join(ROOT, "mapper", "runs")
+
+    def test_contracts_are_discovered_from_disk(self):
+        found = self.cl.available()
+        self.assertIn("public_po", found)
+        self.assertIn("invoice_register", found)
+
+    def test_every_contract_declares_required_fields_and_gates(self):
+        for name in self.cl.available():
+            c = self.cl.Contract(self.cl.load(name))
+            self.assertTrue(c.REQUIRED, f"{name} declares no required fields")
+            self.assertTrue(c.gates, f"{name} declares no gates")
+            for g in c.gates:
+                self.assertIn("check", g, f"{name}: gate without a check type")
+
+    def test_config_contract_matches_the_python_one(self):
+        """The TOML public_po must reach the same verdicts as public_po_lib."""
+        import public_po_lib
+        toml = self.cl.Contract(self.cl.load("public_po"))
+        for stem, src in [("providence_purchase_orders",
+                           "providence_purchase_orders.csv"),
+                          ("vermont_purchase_orders",
+                           "vermont_purchase_orders.json")]:
+            p = os.path.join(self.runs, stem + ".json")
+            s = os.path.join(self.ext, src)
+            if not (os.path.exists(p) and os.path.exists(s)):
+                self.skipTest("external run artifacts not present")
+            proposal = json.load(open(p, encoding="utf-8"))["proposal"]
+            py_ok = all(ok for _, ok, _ in public_po_lib.apply_and_gate(proposal, s)[0])
+            tm_ok = all(ok for _, ok, _ in toml.apply_and_gate(proposal, s)[0])
+            self.assertEqual(py_ok, tm_ok, f"{stem}: config and code disagree")
+
+    def test_a_new_domain_needs_only_a_file(self):
+        """LA City is refused by public_po and accepted by invoice_register --
+        two contracts, one file, and no Python written for either outcome."""
+        src = os.path.join(self.ext, "lacity_invoices.tsv")
+        prop = os.path.join(self.runs, "lacity_invoice.json")
+        if not (os.path.exists(src) and os.path.exists(prop)):
+            self.skipTest("invoice run artifacts not present")
+        proposal = json.load(open(prop, encoding="utf-8"))["proposal"]
+        inv = self.cl.Contract(self.cl.load("invoice_register"))
+        self.assertEqual(inv.structural_check(proposal), [])
+        gates, conformed = inv.apply_and_gate(proposal, src)
+        self.assertTrue(all(ok for _, ok, _ in gates),
+                        [g for g in gates if not g[1]])
+        self.assertGreater(len(conformed), 0)
+        # ... and the PO contract still refuses the same file
+        po = self.cl.Contract(self.cl.load("public_po"))
+        self.assertTrue(any("amount" in m or "region" in m
+                            for m in po.structural_check(proposal)))
