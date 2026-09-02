@@ -1,10 +1,21 @@
 name: live-map
 
 # Run a LIVE agentic mapping from the browser: repo -> Actions -> live-map ->
-# "Run workflow". Requires one repo secret, CLAUDE_CODE_OAUTH_TOKEN, minted
-# locally with `claude setup-token` (runs on a Claude subscription; no API
-# key, no card). CI otherwise never calls a model - the build-and-deploy
-# workflow only replays the recorded proposal.
+# "Run workflow".
+#
+# The model credential is fetched at run time from Azure Key Vault using
+# GitHub's OIDC token -- there is no long-lived secret in this repo. Entra ID
+# trusts this workflow by federated credential (subject
+# repo:bgard68/BI-Simulator:ref:refs/heads/main); the workflow presents a
+# short-lived token, Azure exchanges it, and the secret never leaves the run.
+# Requires three non-secret variables: AZURE_CLIENT_ID, AZURE_TENANT_ID,
+# AZURE_SUBSCRIPTION_ID.
+#
+# Fallback: if AZURE_CLIENT_ID is absent, the workflow uses a plain
+# CLAUDE_CODE_OAUTH_TOKEN repo secret instead.
+#
+# CI otherwise never calls a model - build-and-deploy only replays the
+# recorded proposal.
 
 on:
   workflow_dispatch:
@@ -20,17 +31,19 @@ on:
 
 permissions:
   contents: write
+  id-token: write        # required for the OIDC exchange with Entra ID
 
 jobs:
   propose-and-gate:
     runs-on: ubuntu-latest
     steps:
-      - name: Check the subscription token is configured
+      - name: Check a credential path is configured
         env:
           TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
         run: |
-          if [ -z "$TOKEN" ]; then
-            echo "::error::Missing repo secret CLAUDE_CODE_OAUTH_TOKEN. Mint one locally with 'claude setup-token', then add it under Settings -> Secrets and variables -> Actions."
+          if [ -z "$CLIENT_ID" ] && [ -z "$TOKEN" ]; then
+            echo "::error::No credential path configured. Either set repo variables AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_SUBSCRIPTION_ID (Key Vault via OIDC), or add a CLAUDE_CODE_OAUTH_TOKEN repo secret. Mint the token locally with 'claude setup-token'."
             exit 1
           fi
       - uses: actions/checkout@v4
@@ -42,6 +55,19 @@ jobs:
           node-version: "22"
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
+      - name: Azure login (OIDC - no stored credential)
+        if: ${{ vars.AZURE_CLIENT_ID != '' }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Fetch the model credential from Key Vault
+        if: ${{ vars.AZURE_CLIENT_ID != '' }}
+        run: |
+          TOKEN=$(az keyvault secret show --vault-name "${{ vars.AZURE_KEYVAULT_NAME || 'bisim-kv-41d09d' }}" --name claude-code-oauth-token --query value -o tsv)
+          echo "::add-mask::$TOKEN"
+          echo "CLAUDE_CODE_OAUTH_TOKEN=$TOKEN" >> "$GITHUB_ENV"
       - name: Generate the world and the unknown source
         env:
           SEED: ${{ inputs.seed }}
@@ -54,7 +80,7 @@ jobs:
           fi
       - name: Live propose (model gets a voice)
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ env.CLAUDE_CODE_OAUTH_TOKEN || secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           SEED: ${{ inputs.seed }}
         run: |
           if [ -n "$SEED" ]; then

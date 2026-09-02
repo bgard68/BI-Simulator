@@ -127,9 +127,15 @@ was added to catch.
 The loop also stops early: if two consecutive attempts fail with an
 *identical* problem set, retrying cannot help, so it gives up rather than
 spending another model call. For **live** runs from the browser,
-the `live-map` workflow gives the repo an Actions "Run workflow" button; it
-needs the one-time `CLAUDE_CODE_OAUTH_TOKEN` repo secret (mint locally with
-`claude setup-token`).
+the `live-map` workflow gives the repo an Actions "Run workflow" button.
+
+Its credential handling is the production pattern rather than the convenient
+one: **there is no long-lived secret in this repository.** The workflow
+presents GitHub's short-lived OIDC token, Entra ID exchanges it via a
+federated credential scoped to this exact repo and branch, and the model
+credential is read from Azure Key Vault inside the run and masked from the
+log. A plain `CLAUDE_CODE_OAUTH_TOKEN` repo secret still works as a fallback
+if the Azure variables are absent.
 
 ## After acceptance: the source actually lands
 
