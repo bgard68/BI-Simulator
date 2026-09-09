@@ -2,7 +2,7 @@
 
 _[← Back to the main README](../README.md)_
 
-124 tests over the whole pipeline. This page is the map, plus a record of the
+139 tests over the whole pipeline. This page is the map, plus a record of the
 defects the tests surfaced, how each was found, and what would stop the next one.
 
 ---
@@ -21,12 +21,12 @@ python -m unittest discover -s tests
 **The first two lines are not optional on a fresh clone.** `sources/` and
 `warehouse/` are gitignored, and `tests/test_gates.py` raises `SystemExit` with
 an explanatory message if `sources/crm_customers.csv` is missing. A clean clone
-that skips them reports 83 tests and an import error rather than 124 and `OK`.
+that skips them reports 97 tests and an import error rather than 139 and `OK`.
 
 Everything added later builds its own throwaway directory under `tempfile`, so
 only `test_gates.py` carries that prerequisite.
 
-Expect ~45 seconds. Most of it is the pipeline running end to end inside the
+Expect ~55 seconds. Most of it is the pipeline running end to end inside the
 tests, not the assertions.
 
 ---
@@ -39,8 +39,8 @@ tests, not the assertions.
 | `test_etl_primitives.py` | unit | 23 | `conform_region`, `parse_date`, the three source readers |
 | `test_etl.py` | functional + integration | 18 | grain, reconciliation, conformance, dashboard agreement, determinism |
 | `test_build_dashboard.py` | integration | 16 | the `</` script-injection escape, both outputs, payload validation |
-| `test_generate_sources.py` | unit + integration | 13 | `months_between`, the 18-file source set, cross-process determinism |
-| `test_build_mapping_page.py` | integration | 12 | the `html.escape` sink on model-supplied and untrusted external content |
+| `test_generate_sources.py` | unit + integration | 24 | `months_between`, the 18-file source set, cross-process determinism |
+| `test_build_mapping_page.py` | integration | 16 | the `html.escape` sink on model-supplied and untrusted external content |
 
 `etl.py`, `build_dashboard.py`, `build_mapping_page.py` and `generate_sources.py`
 are scripts, not modules — most of their work happens in top-level statements
@@ -54,6 +54,14 @@ directory with `importlib`, so the import's side effects land there and are
 discarded. Deliberately **not** `exec()` over a truncated source: faster, but the
 kind of cleverness that outlives whoever understood it, and a needless
 static-analysis finding.
+
+All test names follow `Method_Condition_ExpectedBehaviour`. The original
+`test_gates.py` used prose names (`test_swapped_join_columns_fail_E5`); those were
+renamed to lead with the gate they exercise (`test_GateE5_WithSwappedJoinColumns_Fails`),
+which both matches the convention and makes the gate identifier the first thing read.
+
+Every group carries at least three negative or edge cases against its successful
+path - the ratio across the five newer files is 53 negative/edge out of 97.
 
 ---
 

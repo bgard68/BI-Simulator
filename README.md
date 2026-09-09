@@ -92,7 +92,7 @@ line amount, a US state, or any notion of an order. Details:
 - **[docs/EXTERNAL_SOURCES.md](docs/EXTERNAL_SOURCES.md)** — the five real
   government files, the second contract that gates them against external
   fact, and the 5/5 result (2 accepted, 3 correctly refused).
-- **[docs/TESTING.md](docs/TESTING.md)** — what the 124 tests cover, how to
+- **[docs/TESTING.md](docs/TESTING.md)** — what the 139 tests cover, how to
   run them (two generator scripts must run first on a fresh clone), the
   defects writing them surfaced — including generation that was not actually
   deterministic despite `random.seed(42)` — and the mutation results.

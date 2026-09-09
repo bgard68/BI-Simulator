@@ -173,5 +173,44 @@ class TestBuildMappingPage(unittest.TestCase):
         self.assertFalse(os.path.exists(self.out))
 
 
+    def test_Build_WithAProposalMissingItsColumnsKey_FailsRatherThanRenderingEmpty(self):
+        with open(self.recorded, encoding="utf-8") as f:
+            recorded = json.load(f)
+        del recorded["proposal"]["columns"]
+        with open(self.recorded, "w", encoding="utf-8") as f:
+            json.dump(recorded, f)
+
+        result = _run("build_mapping_page.py", self.work)
+
+        self.assertEqual(1, result.returncode)
+        self.assertIn("KeyError", result.stderr)
+
+    def test_Build_WithNoProposalKeyAtAll_FailsRatherThanRenderingEmpty(self):
+        with open(self.recorded, "w", encoding="utf-8") as f:
+            json.dump({"meta": {}}, f)
+
+        result = _run("build_mapping_page.py", self.work)
+
+        self.assertEqual(1, result.returncode)
+        self.assertIn("KeyError", result.stderr)
+
+    def test_Build_WithAnEmptySourceFile_StillEscapesAndDoesNotCrashOnTheCanary(self):
+        # No canary line means the lookup returns (None, None); the page must still
+        # render rather than blow up interpolating a missing match.
+        with open(self.source, "w", encoding="utf-8") as f:
+            f.write("")
+
+        result = _run("build_mapping_page.py", self.work)
+
+        self.assertNotEqual(2, result.returncode)
+
+    def test_Build_WithNoTemplateDirectoryWritable_IsNotSilentlySkipped(self):
+        # Guards the inverse of the negatives above: a successful exit must mean a
+        # page was actually written, not that the build quietly did nothing.
+        result = _run("build_mapping_page.py", self.work)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertGreater(os.path.getsize(self.out), 1000)
+
 if __name__ == "__main__":
     unittest.main()

@@ -15,10 +15,12 @@ import importlib.util
 import json
 import os
 import shutil
+import sqlite3
 import subprocess
 import sys
 import tempfile
 import unittest
+from xml.etree import ElementTree
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -185,6 +187,85 @@ class TestGenerationIsSeeded(unittest.TestCase):
             second = f.read()
 
         self.assertEqual(first, second)
+
+
+class TestMonthsBetweenRejectsBadInput(unittest.TestCase):
+    """The spine is built from dates; anything else must fail at the call, not later."""
+
+    def test_MonthsBetween_WithANullStart_RaisesAttributeError(self):
+        with self.assertRaises(AttributeError):
+            gen.months_between(None, datetime.date(2026, 1, 1))
+
+    def test_MonthsBetween_WithANullEnd_RaisesAttributeError(self):
+        with self.assertRaises(AttributeError):
+            gen.months_between(datetime.date(2026, 1, 1), None)
+
+    def test_MonthsBetween_WithAnIsoStringInsteadOfADate_RaisesAttributeError(self):
+        # A string that looks like a date is the likeliest wrong argument, and it
+        # must not silently produce a plausible-looking spine.
+        with self.assertRaises(AttributeError):
+            gen.months_between("2026-01-01", datetime.date(2026, 3, 1))
+
+
+class TestWeightedChoiceRejectsBadInput(unittest.TestCase):
+    """
+    wchoice drives most of the fabricated distributions. A silent wrong answer
+    here would skew the whole dataset without failing anything.
+    """
+
+    def test_WChoice_WithNoItems_RaisesIndexError(self):
+        with self.assertRaises(IndexError):
+            gen.wchoice([], [])
+
+    def test_WChoice_WithFewerWeightsThanItems_RaisesValueError(self):
+        with self.assertRaises(ValueError):
+            gen.wchoice(["a", "b"], [1])
+
+    def test_WChoice_WithMoreWeightsThanItems_RaisesValueError(self):
+        with self.assertRaises(ValueError):
+            gen.wchoice(["a"], [1, 1])
+
+    def test_WChoice_WithAllZeroWeights_RaisesValueError(self):
+        with self.assertRaises(ValueError):
+            gen.wchoice(["a", "b"], [0, 0])
+
+    def test_WChoice_WithASingleItem_AlwaysReturnsThatItem(self):
+        result = gen.wchoice(["only"], [1])
+
+        self.assertEqual("only", result)
+
+
+class TestGeneratedSourcesAreWellFormed(unittest.TestCase):
+    """A file that exists but is unreadable is worse than one that is missing."""
+
+    def test_ErpDatabase_AfterARun_IsAReadableSqliteFileWithBothTables(self):
+        path = os.path.join(_sources_dir(_work), "erp_sales.db")
+
+        con = sqlite3.connect(path)
+        self.addCleanup(con.close)
+        tables = {r[0] for r in con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+
+        self.assertIn("orders", tables)
+        self.assertIn("order_items", tables)
+
+    def test_SupplierPricelist_AfterARun_IsParseableXml(self):
+        path = os.path.join(_sources_dir(_work), "supplier_pricelist.xml")
+
+        root = ElementTree.parse(path).getroot()
+
+        self.assertGreater(len(list(root)), 0)
+
+    def test_GeneratedSources_AfterARun_ContainNoStraySetReprLeakage(self):
+        # A set that reached a CSV cell would serialise as "{'a', 'b'}" and also be
+        # order-unstable - the same class of defect as the list({...}) fix.
+        path = os.path.join(_sources_dir(_work), "crm_customers.csv")
+
+        with open(path, encoding="utf-8") as f:
+            body = f.read()
+
+        self.assertNotIn("{'", body)
+        self.assertNotIn("set()", body)
 
 
 if __name__ == "__main__":
