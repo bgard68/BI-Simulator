@@ -19,6 +19,11 @@ with open(os.path.join(ROOT, "dashboard_template.html"), encoding="utf-8") as f:
 with open(os.path.join(ROOT, "warehouse", "dashboard_data.json"), encoding="utf-8") as f:
     payload = f.read()
 
+# Fail on a corrupt warehouse file rather than embedding it verbatim. Without this
+# the page builds, exits 0 and renders broken - the worst of the three outcomes,
+# because nothing tells you the dashboard is wrong. Also the json import's only use.
+json.loads(payload)
+
 # keep any "</" inside JSON strings from terminating the <script> block
 payload = payload.replace("</", "<\\/")
 page = template.replace("__DATA_JSON__", payload, 1)

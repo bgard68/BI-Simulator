@@ -380,7 +380,10 @@ TICKET_CATS = ["Shipping delay", "Return help", "Product question", "Warranty cl
 late_or_returned = [o for o in orders if
                     (o["order_id"] in ship_by_order and
                      ship_by_order[o["order_id"]]["actual_days"] > ship_by_order[o["order_id"]]["promised_days"])]
-returned_orders = list({r["order_id"] for r in returns})
+# sorted(), not list(): set iteration order depends on per-process string hash
+# randomisation, so list() here desynchronises the seeded stream and makes
+# support_tickets.csv differ between runs despite random.seed(42).
+returned_orders = sorted({r["order_id"] for r in returns})
 ticket_pool = late_or_returned * 3 + [orders_by_id[x] for x in returned_orders] * 2 + orders
 tickets = []
 MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -414,7 +417,9 @@ for i in range(900):
         "csat": random.randint(1, 5) if closed and random.random() < 0.6 else ""})
 
 # ---------------------------------------------------------------- NPS surveys
-cust_with_orders = list({o["customer_id"] for o in orders})
+# sorted() for the same reason: this feeds random.choice in the NPS loop, and an
+# unstable order made every row of nps_surveys.csv differ between runs.
+cust_with_orders = sorted({o["customer_id"] for o in orders})
 late_custs = {o["customer_id"] for o in late_or_returned}
 ret_custs = {orders_by_id[x]["customer_id"] for x in returned_orders}
 COMMENTS_HI = ["Great gear, fast delivery.", "The tent survived a storm. Sold.",
