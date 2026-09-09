@@ -84,7 +84,7 @@ line amount, a US state, or any notion of an order. Details:
   each script does, how the dashboard works inside, CI/CD, and the design
   decisions behind them.
 - **[docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md)** — every column of
-  all 18 source files, their deliberate quirks, and the 43-column flat
+  all 18 source files, their deliberate quirks, and the 45-column flat
   table they produce.
 - **[docs/STAR_SCHEMA.md](docs/STAR_SCHEMA.md)** — the dimensional model
   hiding in the sources, the four join patterns (and the fan trap they
@@ -92,6 +92,10 @@ line amount, a US state, or any notion of an order. Details:
 - **[docs/EXTERNAL_SOURCES.md](docs/EXTERNAL_SOURCES.md)** — the five real
   government files, the second contract that gates them against external
   fact, and the 5/5 result (2 accepted, 3 correctly refused).
+- **[docs/TESTING.md](docs/TESTING.md)** — what the 124 tests cover, how to
+  run them (two generator scripts must run first on a fresh clone), the
+  defects writing them surfaced — including generation that was not actually
+  deterministic despite `random.seed(42)` — and the mutation results.
 - **[docs/AGENTIC_MAPPING.md](docs/AGENTIC_MAPPING.md)** — the AI-in-the-loop
   stage: an LLM proposes the schema mapping for an unseen source, eleven
   deterministic gates decide, CI replays the decision on every push.

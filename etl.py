@@ -2,7 +2,7 @@
 ETL: extracts all 18 simulated sources, conforms them (date formats, region
 codes, casing), joins everything onto the order-line grain, and writes:
 
-  warehouse/flat_sales.csv        the full flattened wide table (43 cols)
+  warehouse/flat_sales.csv        the full flattened wide table (45 cols)
   warehouse/dashboard_data.json   trimmed rows + aggregates for the dashboard
 
 Run:  python etl.py   (after generate_sources.py)

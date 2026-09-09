@@ -58,7 +58,7 @@ A deliberately readable, stdlib-only pipeline in four movements:
    many-to-one sources, and composite-key reference lookups (FX by
    month+currency).
 4. **Derive and load** — compute `revenue_usd`, `cost_usd`, `margin_usd`;
-   drop cancelled orders; write the full 43-column `flat_sales.csv` plus a
+   drop cancelled orders; write the full 45-column `flat_sales.csv` plus a
    trimmed, compact JSON payload for the dashboard (column-legend +
    array-of-arrays, roughly half the size of keyed objects).
 
