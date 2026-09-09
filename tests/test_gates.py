@@ -448,7 +448,8 @@ class TestContractRegistry(unittest.TestCase):
             s = os.path.join(self.ext, src)
             if not (os.path.exists(p) and os.path.exists(s)):
                 self.skipTest("external run artifacts not present")
-            proposal = json.load(open(p, encoding="utf-8"))["proposal"]
+            with open(p, encoding="utf-8") as f:
+                proposal = json.load(f)["proposal"]
             py_ok = all(ok for _, ok, _ in public_po_lib.apply_and_gate(proposal, s)[0])
             tm_ok = all(ok for _, ok, _ in toml.apply_and_gate(proposal, s)[0])
             self.assertEqual(py_ok, tm_ok, f"{stem}: config and code disagree")
@@ -460,7 +461,8 @@ class TestContractRegistry(unittest.TestCase):
         prop = os.path.join(self.runs, "lacity_invoice.json")
         if not (os.path.exists(src) and os.path.exists(prop)):
             self.skipTest("invoice run artifacts not present")
-        proposal = json.load(open(prop, encoding="utf-8"))["proposal"]
+        with open(prop, encoding="utf-8") as f:
+            proposal = json.load(f)["proposal"]
         inv = self.cl.Contract(self.cl.load("invoice_register"))
         self.assertEqual(inv.structural_check(proposal), [])
         gates, conformed = inv.apply_and_gate(proposal, src)
