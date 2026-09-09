@@ -183,21 +183,36 @@ class TestBuildDashboard(unittest.TestCase):
 
         self.assertFalse(os.path.exists(self.dashboard_path))
 
-    def test_Build_WithAMalformedPayload_EmbedsItUnvalidatedAndStillSucceeds(self):
-        # Documents a real gap rather than the behaviour we would want. The payload
-        # is read with f.read() and never json.loads()'d, so a corrupt warehouse file
-        # is injected verbatim and the dashboard renders broken with a zero exit.
-        # Naming this as a "fails loudly" test would have asserted a fiction.
-        # Fixing it means parsing before injecting, which is a change to
-        # build_dashboard.py, not to its tests.
+    def test_Build_WithAMalformedPayload_FailsInsteadOfBuildingABrokenPage(self):
+        # Previously this exited 0 and injected the corrupt text verbatim, so the
+        # dashboard rendered broken with nothing to say it was wrong. Now the payload
+        # is parsed before injection.
         with open(self.payload_path, "w", encoding="utf-8") as f:
             f.write("{not valid json")
 
         result = _run("build_dashboard.py", self.work)
 
-        self.assertEqual(0, result.returncode, result.stderr)
-        self.assertTrue(os.path.exists(self.dashboard_path))
-        self.assertIn("{not valid json", self._read(self.dashboard_path))
+        self.assertEqual(1, result.returncode)
+        self.assertIn("JSONDecodeError", result.stderr)
+
+    def test_Build_WithAMalformedPayload_WritesNoStandalonePage(self):
+        with open(self.payload_path, "w", encoding="utf-8") as f:
+            f.write("{not valid json")
+
+        _run("build_dashboard.py", self.work)
+
+        self.assertFalse(os.path.exists(self.dashboard_path))
+
+    def test_Build_WithATruncatedPayload_FailsRatherThanEmbeddingHalfATable(self):
+        with open(self.payload_path, encoding="utf-8") as f:
+            good = f.read()
+        with open(self.payload_path, "w", encoding="utf-8") as f:
+            f.write(good[:len(good) // 2])
+
+        result = _run("build_dashboard.py", self.work)
+
+        self.assertEqual(1, result.returncode)
+        self.assertIn("JSONDecodeError", result.stderr)
 
 
 if __name__ == "__main__":
