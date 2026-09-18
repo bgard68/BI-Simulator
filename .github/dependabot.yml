@@ -1,0 +1,42 @@
+# Weekly action updates, grouped so routine bumps arrive as one pull request
+# instead of one per action.
+#
+# github-actions is the ONLY ecosystem here, and that is not an omission. This
+# repo carries no package manifest of any kind - no requirements.txt, no
+# pyproject.toml, no setup.py, no Pipfile - because every import in every .py
+# file is either stdlib (csv, json, sqlite3, tomllib, urllib, xml, ...) or a
+# sibling module in this tree (mapping_lib, contract_lib, redact, ...). A pip
+# entry would be configuration that can never fire. Add one the day a third-
+# party import lands, not before.
+#
+# Until this file existed nothing watched the action pins at all, which is how
+# github/codeql-action sat at v4.37.9 here while the same action had already
+# moved to v4.38.0 in the sibling repos. Pinning to a SHA is what makes a
+# supply-chain attack on a mutable tag impossible; it is also what makes the
+# pin go stale silently. The pin and the thing that raises a PR to move it are
+# a pair, and this repo only had the first half.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      # Majors are deliberately left ungrouped below so they arrive alone and
+      # get read on their own. codeql-action is the one exception: init and
+      # analyze share a config file and refuse to run at different versions
+      # ("Loaded a configuration file for version X, but running version Y"),
+      # so a split pair fails whichever half arrives first and neither can
+      # merge on its own - at any semver level. Hence no update-types filter
+      # here, and it must precede minor-and-patch, because groups match in
+      # order and the first match wins.
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
