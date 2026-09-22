@@ -1,0 +1,53 @@
+name: Dependabot auto-merge
+
+# Turns on GitHub's native auto-merge for Dependabot pull requests, so a PR whose
+# every required check passes merges itself instead of waiting for a human to press
+# the button. Branch protection still fully gates the merge — nothing red lands.
+#
+# Scope: minor and patch updates only. Major bumps stay open on purpose, so a person
+# reads the changelog before they land.
+#
+# Requires "Allow auto-merge" in Settings > General. If it is off, the last step
+# fails with a message saying so rather than failing silently.
+#
+# Uses only the automatic GITHUB_TOKEN — no PAT or extra secrets.
+
+on: pull_request
+
+# Read-only by default; the one job that needs it grants itself the minimum below.
+permissions:
+  contents: read
+
+jobs:
+  auto-merge:
+    # The PR's author, not github.actor. github.actor is whoever caused this event,
+    # so any workflow that later pushes to a Dependabot branch would make the
+    # following synchronize run skip this job and leave auto-merge off — which is
+    # exactly how the other repositories' Dependabot PRs got stuck.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Scoped to the job, not the workflow, so the workflow default stays read-only.
+    #
+    # contents: write is required, not optional: `gh pr merge --auto` calls the
+    # enablePullRequestAutoMerge mutation, which GitHub gates on contents: write even
+    # though GitHub performs the merge itself later. Without it the step fails with
+    # "Resource not accessible by integration".
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      - name: Enable auto-merge for non-major updates
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: |
+          if ! gh pr merge --auto --squash "$PR_URL"; then
+            echo "::error::Could not enable auto-merge. Check that Settings > General > Allow auto-merge is enabled for this repository."
+            exit 1
+          fi
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
