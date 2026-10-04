@@ -167,8 +167,23 @@ flowchart LR
   code, and the site is always the product of the committed code.
 - **`codeql.yml`** — static analysis over the Python and the JavaScript
   embedded in the template, on push/PR and weekly.
-- **No Dependabot** — there are no dependencies to monitor; the entire
-  project runs on the Python standard library and hand-written JS.
+- **`live-map.yml`** — the only workflow that calls a model, and
+  `workflow_dispatch` only. It defaults to a self-hosted runner so a live run
+  uses the Claude login already on that machine; on a hosted runner the
+  credential is fetched from Azure Key Vault with GitHub's OIDC token, falling
+  back to a `CLAUDE_CODE_OAUTH_TOKEN` secret. Nothing a fork can trigger
+  targets the self-hosted runner.
+- **`dependabot-auto-merge.yml`** — turns on auto-merge for green Dependabot
+  minor/patch pull requests, so routine action bumps land without a human.
+- **Dependabot watches actions, not packages.** There is still no package
+  manifest of any kind — every import is stdlib or a sibling module — so
+  `github-actions` is the only ecosystem declared. It exists because the
+  workflows pin actions to SHAs: pinning is what makes a mutable-tag attack
+  impossible, and also what makes a pin go stale silently, so the pin and the
+  thing that raises a PR to move it are a pair. Majors arrive ungrouped to be
+  read on their own; `codeql-action` is grouped whole at every level, because
+  `init` and `analyze` share a config file and refuse to run at different
+  versions.
 
 ## Design decisions
 
