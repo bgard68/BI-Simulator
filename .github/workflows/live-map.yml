@@ -8,8 +8,10 @@ name: live-map
 # trusts this workflow by federated credential (subject
 # repo:bgard68/BI-Simulator:ref:refs/heads/main); the workflow presents a
 # short-lived token, Azure exchanges it, and the secret never leaves the run.
-# Requires three non-secret variables: AZURE_CLIENT_ID, AZURE_TENANT_ID,
-# AZURE_SUBSCRIPTION_ID.
+# Requires three non-secret repo variables: AZURE_CLIENT_ID, AZURE_TENANT_ID,
+# AZURE_KEYVAULT_NAME. There is deliberately no AZURE_SUBSCRIPTION_ID: the
+# login below passes allow-no-subscriptions, because the CI identity holds no
+# subscription role at all - only read on one vault secret.
 #
 # Simpler still: pick runner=self-hosted and the job runs on your own
 # machine, using the Claude login already sitting there -- no credential in
@@ -59,7 +61,7 @@ jobs:
           CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
         run: |
           if [ -z "$CLIENT_ID" ] && [ -z "$TOKEN" ]; then
-            echo "::error::No credential path configured. Either set repo variables AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_SUBSCRIPTION_ID (Key Vault via OIDC), or add a CLAUDE_CODE_OAUTH_TOKEN repo secret. Mint the token locally with 'claude setup-token'."
+            echo "::error::No credential path configured. Either set repo variables AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_KEYVAULT_NAME (Key Vault via OIDC), or add a CLAUDE_CODE_OAUTH_TOKEN repo secret. Mint the token locally with 'claude setup-token'."
             exit 1
           fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
