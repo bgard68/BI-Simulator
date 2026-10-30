@@ -2,7 +2,7 @@
 
 _[← Back to the main README](../README.md)_
 
-139 tests over the whole pipeline. This page is the map, plus a record of the
+155 tests over the whole pipeline. This page is the map, plus a record of the
 defects the tests surfaced, how each was found, and what would stop the next one.
 
 ---
@@ -21,7 +21,7 @@ python -m unittest discover -s tests
 **The first two lines are not optional on a fresh clone.** `sources/` and
 `warehouse/` are gitignored, and `tests/test_gates.py` raises `SystemExit` with
 an explanatory message if `sources/crm_customers.csv` is missing. A clean clone
-that skips them reports 97 tests and an import error rather than 139 and `OK`.
+that skips them reports 113 tests and an import error rather than 155 and `OK`.
 
 Everything added later builds its own throwaway directory under `tempfile`, so
 only `test_gates.py` carries that prerequisite.
@@ -41,6 +41,7 @@ tests, not the assertions.
 | `test_build_dashboard.py` | integration | 16 | the `</` script-injection escape, both outputs, payload validation |
 | `test_generate_sources.py` | unit + integration | 24 | `months_between`, the 18-file source set, cross-process determinism |
 | `test_build_mapping_page.py` | integration | 16 | the `html.escape` sink on model-supplied and untrusted external content |
+| `test_architecture.py` | static | 16 | ARCHITECTURE.md's import promises: stdlib-or-sibling only, file-coupled stages, no cycles, and a replay closure that never touches network, clock, or environment |
 
 `etl.py`, `build_dashboard.py`, `build_mapping_page.py` and `generate_sources.py`
 are scripts, not modules — most of their work happens in top-level statements
