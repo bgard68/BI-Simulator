@@ -3,6 +3,12 @@ name: build-and-deploy
 on:
   push:
     branches: [main]
+  # Pull requests run the build job too, and only that one. Without this the gate
+  # test suite ran exclusively after merge, so `build` could never report on a pull
+  # request -- which made it unsatisfiable as a required check and left every pull
+  # request, Dependabot's included, permanently unmergeable.
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -16,9 +22,16 @@ permissions:
 # started by hand, and the reverse. A cancelled run is not a failed run, so nothing
 # goes red and the site keeps serving the previous build until someone notices.
 # ToDoApp lost four weeks of frontend deploys to exactly that shape.
+#
+# Pull request runs take their own per-branch lane instead, so a proposed change
+# never queues behind a production deployment and never holds one up; those do
+# cancel their own supersedes, which is where the saved minutes are.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: >-
+    ${{ github.event_name == 'pull_request'
+        && format('pages-pr-{0}', github.ref)
+        || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -80,6 +93,8 @@ jobs:
           path: site
 
   deploy:
+    # Never from a pull request: a proposed change is built and tested, not published.
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
