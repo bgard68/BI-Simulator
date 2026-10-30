@@ -10,9 +10,15 @@ permissions:
   pages: write
   id-token: write
 
+# One deployment at a time, queued rather than cancelled — what GitHub's own Pages
+# workflow recommends, so an in-progress production deployment always finishes. The
+# group is a constant, so every run shares it: cancelling let a push kill a deploy
+# started by hand, and the reverse. A cancelled run is not a failed run, so nothing
+# goes red and the site keeps serving the previous build until someone notices.
+# ToDoApp lost four weeks of frontend deploys to exactly that shape.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
